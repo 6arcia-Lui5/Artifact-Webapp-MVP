@@ -7,8 +7,8 @@ export const users = pgTable("users", {
     name: text("name").notNull(),
     imageURL: text("image_url"),
 
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const collections = pgTable("collections", {
@@ -19,8 +19,8 @@ export const collections = pgTable("collections", {
     imageURL: text("image_url"),
     timePeriod: text("time_period").notNull(),
 
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+    createdAt: timestamp("created_At", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_At", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const records = pgTable("records", {
@@ -38,8 +38,8 @@ export const records = pgTable("records", {
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade"}),
     collectionId: uuid("collectionId").notNull().references(() => collections.id, { onDelete: "cascade"}),
 
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 
