@@ -5,7 +5,7 @@ export const users = pgTable("users", {
     id: text("id").primaryKey(), // clerkID
     email: text("email").notNull().unique(),
     name: text("name").notNull(),
-    imageURL: text("image_url"),
+    imageUrl: text("image_url"),
 
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -16,7 +16,7 @@ export const collections = pgTable("collections", {
 
     title: text("title").notNull(),
     description: text("description").notNull(),
-    imageURL: text("image_url"),
+    imageUrl: text("image_url"),
     timePeriod: text("time_period").notNull(),
 
     createdAt: timestamp("created_At", { mode: "date" }).notNull().defaultNow(),
@@ -28,7 +28,7 @@ export const records = pgTable("records", {
 
     title: text("title").notNull(),
     description: text("description").notNull(),
-    imageURL: text("image_url"),
+    imageUrl: text("image_url"),
     date: text("date").notNull(),
     material: text("material").notNull(),
     dimensions: text("dimensions").notNull(),
