@@ -15,8 +15,9 @@ app.get("/", (req, res) => {
         message: "Welcome",
         endpoints: {
             users: "/api/users",
-            products: "/api/products",
-            comments: "/api/comments"
+            records: "/api/records",
+            collections: "/api/collections",
+            
         },
     });
 });
