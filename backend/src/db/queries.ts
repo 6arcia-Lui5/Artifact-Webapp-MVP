@@ -34,7 +34,7 @@ export const createCollection = async(data:NewCollection) => {
 
 //gets collection info for cards
 export const getAllCollections = async() => {
-    db.query.collections.findMany({ 
+    return db.query.collections.findMany({ 
         with: { records: true },
         orderBy: (collections, {desc}) => [desc(collections.createdAt)] 
     });
@@ -63,7 +63,7 @@ export const createRecord = async(data:NewRecord) => {
 
 //gets record info for cards
 export const getAllRecords = async() => {
-    db.query.records.findMany({ 
+    return db.query.records.findMany({ 
         with: { user: true },
         orderBy: (records, {desc}) => [desc(records.createdAt)] 
     });
@@ -71,13 +71,16 @@ export const getAllRecords = async() => {
 
 //Used in record page for all details
 export const getRecordById = async(id: string) => {
-    return db.query.records.findFirst({ where: eq(records.id, id), with: {
-        user: true,
-        
-    } });
+    return db.query.records.findFirst({ 
+        where: eq(records.id, id), 
+        with: {
+            user: true,
+            collections: true,
+        },
+    });
 };
 
-export const getRecordByUserId = async(userId: string) => {
+export const getRecordsByUserId = async(userId: string) => {
     return db.query.records.findMany({ 
         where: eq(records.userId, userId), 
         with: { user: true},
