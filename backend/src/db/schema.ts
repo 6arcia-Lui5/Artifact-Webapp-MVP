@@ -57,7 +57,7 @@ export const collectionRelations = relations(collections, ({many}) => ({
 
 // Records can have one users and belong to one collection
 export const recordRelations = relations(records, ({one}) => ({
-    users: one(users, {
+    user: one(users, {
         fields:[records.userId], 
         references: [users.id]
     }),
@@ -67,10 +67,10 @@ export const recordRelations = relations(records, ({one}) => ({
 }));
 
 export type User = typeof users.$inferSelect;
-export type newUser = typeof users.$inferInsert;
+export type NewUser = typeof users.$inferInsert;
 
 export type collection = typeof collections.$inferSelect;
-export type newCollection = typeof collections.$inferInsert;
+export type NewCollection = typeof collections.$inferInsert;
 
 export type Record = typeof records.$inferSelect;
-export type newRecord = typeof records.$inferInsert;
+export type NewRecord = typeof records.$inferInsert;
