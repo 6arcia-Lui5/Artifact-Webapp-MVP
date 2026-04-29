@@ -4,6 +4,7 @@ import {
   SignInButton,
   SignOutButton,
   UserButton,
+  useUser,
 } from "@clerk/react";
 
 import Navbar from "./components/Navbar"
@@ -16,9 +17,14 @@ import RecordPage from "./pages/RecordPage"
 import ProfilePage from "./pages/ProfilePage"
 import CreatePage from "./pages/CreatePage"
 import EditRecordPage from "./pages/EditRecordPage"
+import useAuthReq from "../hooks/useAuthReq";
+import useUserSync from "../hooks/useUserSync";
 
 function App() {
-
+  const { isClerkLoaded, isSignedIn} = useAuthReq();
+  useUserSync();
+  if (!isClerkLoaded) return null;
+  
   return (
     <div className="min-h-screen bg-base-100" >
       <Navbar />
