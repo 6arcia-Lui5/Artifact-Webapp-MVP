@@ -67,7 +67,7 @@ export const createCollection = async (req: Request, res: Response) => {
 //             return;
 //         }
 
-//         const product = await queries.updateColl
+//         const product = await queries.updateCollection
 
 //     } catch(error) {
 //         console.error("Error getting product:", error);

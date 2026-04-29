@@ -9,7 +9,7 @@ import collectionRoutes from "./routes/collectionRoutes"
 
 const app = express()
 
-app.use(cors({ origin: ENV.FRONTEND_URL }));
+app.use(cors({ origin: ENV.FRONTEND_URL, credentials: true })); //credentials:ture allows frontend to send cookies to backend so we can authenticate user
 app.use(clerkMiddleware()); // auth obj will be attached to the req object
 app.use(express.json()); // parses json body
 app.use(express.urlencoded({ extended: true })); // parses data (like html forms)
