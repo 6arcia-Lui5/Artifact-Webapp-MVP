@@ -32,7 +32,6 @@ function CreatePage() {
       await createRecord.mutateAsync({
         ...formData,
         userId: user.id,
-        collectionId: null, // replace with real value
       });
       console.log(formData)
 
@@ -42,7 +41,11 @@ function CreatePage() {
     }
   };
   
-  
+  console.log("Submitting record:", {
+  ...formData,
+  userId: user?.id,
+  collectionId: null,
+});
   return <div className='max-w-lg mx-auto'>
     <Link to="/" className='btn btn-ghost btn-sm gap-1 mb-4'>
       <ArrowLeftIcon className='size-4' /> Back
