@@ -36,10 +36,10 @@ export const records = pgTable("records", {
     credit: text("credit").notNull(),
     objectNumber: text("object_number").notNull(),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade"}),
-    collectionId: uuid("collectionId").notNull().references(() => collections.id, { onDelete: "cascade"}),
+    collectionId: uuid("collectionId").references(() => collections.id, { onDelete: "cascade"}),
 
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 
