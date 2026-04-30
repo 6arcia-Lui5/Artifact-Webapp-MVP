@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { SignInButton, SignUpButton, UserButton, useAuth, Show, SignOutButton, SignIn } from '@clerk/react';
-import { MapIcon, DraftingCompassIcon, PlusIcon, UserIcon } from 'lucide-react';
+import { MapIcon, DraftingCompassIcon, PlusIcon, UserIcon, Search } from 'lucide-react';
 
 function Navbar() {
   const { isSignedIn } = useAuth();
@@ -18,6 +18,10 @@ function Navbar() {
             <div className='flex gap-2 items-center'>
               {isSignedIn ? (
                 <>
+                  <Link to="/search" className='btn btn-ghost btn-sm gap-1'>
+                    <Search className='size-4'/>
+                    <span className='hidden sm:inline'>Search</span>
+                  </Link>
                   <Link to="/create" className='btn btn-primary btn-sm gap-1'>
                     <PlusIcon className='size-4'/>
                     <span className='hidden sm:inline'>New Record</span>
