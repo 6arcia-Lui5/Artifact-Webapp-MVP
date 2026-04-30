@@ -19,6 +19,8 @@ export const getRecordById = async (req: Request, res: Response) => {
         const record = await queries.getRecordById(id.toString());
 
         if (!record) return res.status(404).json({ error: "Record not found" });
+
+        return res.status(200).json(record);
     } catch(error) {
         console.error("Error getting collection by id:", error);
         res.status(500).json({ error: "Failed to get collection by id" });
@@ -48,7 +50,7 @@ export const createRecord = async (req: Request, res: Response) => {
 
         const { title, description, imageUrl, date, material, dimensions, classification, credit, objectNumber, collectionId } = req.body
 
-        if (!title || !description || !imageUrl || !date || !material || !dimensions || !classification || !credit || !objectNumber || !collectionId) {
+        if (!title || !description || !imageUrl || !date || !material || !dimensions || !classification || !credit || !objectNumber ) {
             res.status(400).json({ error: "All fields required for a record" });
             return;
         }
