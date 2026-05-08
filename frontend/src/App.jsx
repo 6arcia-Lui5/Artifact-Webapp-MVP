@@ -19,6 +19,7 @@ import CreatePage from "./pages/CreatePage"
 import EditRecordPage from "./pages/EditRecordPage"
 import useAuthReq from "../hooks/useAuthReq";
 import useUserSync from "../hooks/useUserSync";
+import { Navigate } from "react-router";
 
 function App() {
   const { isClerkLoaded, isSignedIn} = useAuthReq();
@@ -35,7 +36,7 @@ function App() {
         <Route path="/record/:id" element={<RecordPage />} />
         <Route path="/profile" element={isSignedIn ? <ProfilePage/> : <Navigate to={"/"} /> }/>
         <Route path="/create" element={isSignedIn ? <CreatePage/> : <Navigate to={"/"} /> }/>
-        <Route path="/edit" element={isSignedIn ? <EditRecordPage/> : <Navigate to={"/"} /> }/>
+        <Route path="/edit/:id" element={isSignedIn ? <EditRecordPage/> : <Navigate to={"/"} /> }/>
       </Routes>
       </main>
     </div>

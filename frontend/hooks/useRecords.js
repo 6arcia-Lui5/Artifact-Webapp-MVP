@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { createRecord, deleteRecord, getAllRecords, getMyRecords, getRecordById } from "../lib/api"
+import { createRecord, deleteRecord, getAllRecords, getMyRecords, getRecordById, updateRecord } from "../lib/api"
 
 export const useRecords = () => {
     const result = useQuery({queryKey: ["records"], queryFn:getAllRecords});
@@ -33,4 +33,8 @@ export const useMyRecords = () => {
         queryKey: ["myRecords"],
         queryFn: getMyRecords,
     })
+}
+
+export const useUpdateRecord = () => {
+    return useMutation({ mutationFn: updateRecord })
 }

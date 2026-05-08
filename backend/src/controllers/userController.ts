@@ -10,15 +10,15 @@ export async function syncUser(req: Request, res: Response) {
 
         const {email, name, imageUrl } = req.body;
 
-        if (!email || !name || !imageUrl) {
+        if (!email) {
             return res.status(400).json({ error: "Email, name, and imageUrl are required" })
         }
 
         const user = await queries.upsertUser({
             id: userId,
             email,
-            name,
-            imageUrl
+            name: name || "Anonymous",
+            imageUrl: imageUrl || ""
         });
 
         res.status(200).json(user);

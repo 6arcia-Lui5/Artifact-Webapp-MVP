@@ -44,6 +44,25 @@ function HomePage() {
         </div>
       </div>
 
+      {/* HERO */}
+      <div className='hero bg-linear-to-br from-base-300 via-base-200 to-base-300 rounded-box overflow-hidden'>
+        <div className='hero-content flex-col lg:flex-row-reverse gap-10 py-10 px-10'>
+          <div className='relative'>
+            
+          </div>
+          <div className='text-center lg:text-left'>
+            <h1 className='text-4xl lg:text-5xl font-bold leading-tight'>
+              Our Mission.
+            </h1>
+            <p className='py-4 text-base-content/60'>
+              Our organization is dedicated to the discovery, preservation, and study of historical artifacts bearing inscription errors. These overlooked imperfections—ranging from misspellings and misaligned text to engraving anomalies—offer unique insights into the human, cultural, and technological contexts in which these objects were created. By collecting and documenting such artifacts, we aim to highlight the role of craftsmanship, error, and variation in shaping material history.
+
+We strive to create an accessible digital archive that supports research, education, and public engagement. Through collaboration with collectors, historians, and institutions, our platform fosters a deeper appreciation for the stories embedded not only in perfected works, but in the flaws that reveal the realities of their production.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* RECORDS */}
       <div>
         <h2 className='text-xl font-bold flex items-center gap-2 mb-4'>
