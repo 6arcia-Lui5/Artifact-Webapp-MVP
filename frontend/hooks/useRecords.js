@@ -18,7 +18,7 @@ export const useRecord = (id) => {
     })
 }
 
-export const useDeleteRecord = (id) => {
+export const useDeleteRecord = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn:deleteRecord,

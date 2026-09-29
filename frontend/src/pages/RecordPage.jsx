@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
-import { deleteRecord } from '../../lib/api'
+
 
 function RecordPage() {
   const { id } = useParams();
