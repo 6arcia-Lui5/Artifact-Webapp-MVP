@@ -1,11 +1,10 @@
 import { Router } from "express";
 import { syncUser } from "../controllers/userController"
-import { requireAuth } from "@clerk/express";
+import { requireApiAuth } from "../middleware/requireApiAuth";
 
 const router = Router();
 
 // /api/user/sync - POST => sync the clerk user to db
-router.post("/sync", requireAuth(), syncUser)
+router.post("/sync", requireApiAuth, syncUser)
 
 export default router;
-
