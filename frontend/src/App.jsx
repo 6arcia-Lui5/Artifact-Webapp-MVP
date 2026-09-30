@@ -7,6 +7,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CreatePage from "./pages/CreatePage";
 import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
+import SearchPage from "./pages/SearchPage";
 import RequireSignIn from "./components/RequireSignIn";
 import useAuthReq from "../hooks/useAuthReq";
 
@@ -21,6 +22,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/collections" element={<CollectionPage />} />
           <Route path="/record/:id" element={<RecordPage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/login/*" element={<LoginPage />} />
           <Route path="/signup/*" element={<LoginPage mode="signup" />} />
           <Route element={<RequireSignIn />}>
