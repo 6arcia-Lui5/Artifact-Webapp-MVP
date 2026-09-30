@@ -1,26 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-import { ClerkProvider } from '@clerk/react'
-import { BrowserRouter } from 'react-router'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.jsx";
+import { ClerkProvider } from "@clerk/react";
+import { BrowserRouter } from "react-router";
+import SessionQueryProvider from "./components/SessionQueryProvider";
 
-import {
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query'
-
-// Create a client
-const queryClient = new QueryClient()
-
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ClerkProvider>
+    <ClerkProvider signInUrl="/login" signUpUrl="/signup" afterSignOutUrl="/">
       <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-          <App />
-        </QueryClientProvider>
+        <SessionQueryProvider><App /></SessionQueryProvider>
       </BrowserRouter>
     </ClerkProvider>
   </StrictMode>,
-)
+);

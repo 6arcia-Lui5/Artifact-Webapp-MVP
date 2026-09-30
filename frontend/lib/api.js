@@ -27,7 +27,7 @@ export const createRecord = async (recordData) => {
     return data;
 }
 
-export const updateRecord = async (id, ...recordData) => {
+export const updateRecord = async (id, recordData) => {
     const { data } = await api.put(`/records/${id}`, recordData);
     return data;
 }
@@ -49,6 +49,6 @@ export const getCollectionById = async (id) => {
 }
 
 export const createCollection = async (recordData) => {
-    const { data } = await api.post("/records", recordData);
+    const { data } = await api.post("/collections", recordData);
     return data;
 }

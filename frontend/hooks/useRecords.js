@@ -7,7 +7,14 @@ export const useRecords = () => {
 }
 
 export const useCreateRecord = () => {
-    return useMutation({mutationFn:createRecord})
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn:createRecord,
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["records"]})
+            queryClient.invalidateQueries({queryKey: ["myRecords"]})
+        }
+    })
 }
 
 export const useRecord = (id) => {
@@ -18,12 +25,14 @@ export const useRecord = (id) => {
     })
 }
 
-export const useDeleteRecord = (id) => {
+export const useDeleteRecord = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn:deleteRecord,
-        onSuccess: () => {
+        onSuccess: (_data, id) => {
+            queryClient.invalidateQueries({queryKey: ["records"]})
             queryClient.invalidateQueries({queryKey: ["myRecords"]})
+            queryClient.removeQueries({queryKey: ["record", id]})
         }
     });
 }

@@ -21,6 +21,7 @@ export const getCollectionById = async (req: Request, res: Response) => {
         const collection = await queries.getCollectionById(id.toString());
 
         if (!collection) return res.status(404).json({ error: "Collection not found" });
+        return res.status(200).json(collection);
     } catch(error) {
         console.error("Error getting collection by id:", error);
         res.status(500).json({ error: "Failed to get collection by id" });

@@ -4,7 +4,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
-import { deleteRecord } from '../../lib/api'
+
 
 function RecordPage() {
   const { id } = useParams();
@@ -131,7 +131,7 @@ function RecordPage() {
           <p className='text-base-content/80 leading-relaxed'>Dimensions: {record.dimensions}</p>
           <p className='text-base-content/80 leading-relaxed'>Classification: {record.classification}</p>
           <p className='text-base-content/80 leading-relaxed'>Credit: {record.credit}</p>
-          <p className='text-base-content/80 leading-relaxed'>Collection: {record.collection}</p>
+          <p className='text-base-content/80 leading-relaxed'>Collection: {record.collections?.title ?? "None"}</p>
       </div>
     </div>
   </div>
