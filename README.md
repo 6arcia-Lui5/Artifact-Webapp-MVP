@@ -61,6 +61,21 @@ Both are ignored by Git. Set DEV_ACCOUNT_PASSWORD in backend/.env to the shared 
 Re-running `npm run dev:accounts` reuses the accounts and verifies their passwords.
 To explicitly restore the shared demo password, run `npm run dev:accounts -- --reset-passwords` in `backend`.
 
+## Vercel demo
+
+Live demo: https://artifact-webapp-demo.vercel.app (API: https://artifact-webapp-demo-api.vercel.app).
+
+Create two Vercel projects from this checkout: `backend` (Express function) and `frontend` (Vite static app). The frontend's `vercel.json` serves client routes such as `/login` and `/record/:id` on a direct visit. Each project's `.vercelignore` keeps local `.env` files out of CLI uploads.
+
+Set these Vercel environment variables before deploying:
+
+| Project | Variables |
+| --- | --- |
+| Backend | `DATABASE_URL` (Neon pooled URL), `CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ALLOWED_CLERK_USER_IDS` (exactly the five IDs), `FRONTEND_URL` (the frontend origin) |
+| Frontend | `VITE_CLERK_PUBLISHABLE_KEY` (same Clerk instance), `VITE_API_URL` (`https://<backend-domain>/api`) |
+
+Deploy the backend first, then the frontend. If its URL changes, update `FRONTEND_URL` and redeploy the backend so browser requests pass CORS. For a short-lived demo using the five seeded development accounts, keep both projects on the same Clerk development instance. A true Clerk production instance needs its own domain and five new approved user IDs. The API fails closed when `ALLOWED_CLERK_USER_IDS` is absent. Do not run `db:push` against a shared Neon database without coordinating schema changes.
+
 ## Checks
 
 ```sh

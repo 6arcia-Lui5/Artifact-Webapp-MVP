@@ -35,4 +35,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/records", recordRoutes);
 
-app.listen(ENV.PORT, () => console.log("Server is up on PORT:", ENV.PORT))
+// Vercel imports the Express app as a function. Keep the local server for development.
+if (!process.env.VERCEL) {
+    const port = Number(ENV.PORT) || 3000;
+    app.listen(port, () => console.log("Server is up on PORT:", port));
+}
+
+export default app;

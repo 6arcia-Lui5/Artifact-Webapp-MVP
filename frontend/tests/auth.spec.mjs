@@ -10,8 +10,12 @@ test("five developer accounts are configured", () => {
 });
 
 async function fillAccount(page, account) {
-  await page.getByText("Developer test accounts", { exact: true }).click();
-  await page.getByRole("button", { name: new RegExp(account.name) }).click();
+  if (process.env.E2E_HOSTED) {
+    await page.locator('input[name="identifier"]').fill(account.email);
+  } else {
+    await page.getByText("Developer test accounts", { exact: true }).click();
+    await page.getByRole("button", { name: new RegExp(account.name) }).click();
+  }
   await expect(page.locator('input[name="identifier"]')).toHaveValue(account.email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.locator('input[name="password"]').waitFor({ state: "visible" });
@@ -35,6 +39,17 @@ test("visitors are sent to login before any catalog page loads", async ({ page }
   }
 });
 
+test("odd paths still require login or return API 401", async ({ page, request }) => {
+  for (const route of ["/unknown/path", "/record/%2e%2e%2fsearch", "/collections//extra"]) {
+    await page.goto(route);
+    await expect(page).toHaveURL(/\/login\?redirect=/);
+    await expect(page.getByRole("heading", { name: "Welcome back to the collection." })).toBeVisible();
+  }
+  for (const route of ["//records", "/records%2Fmy", "/unknown/%2e%2e/records"]) {
+    const response = await request.get(apiUrl + route, { maxRedirects: 2 });
+    expect(response.status()).toBe(401);
+  }
+});
 test("API denies anonymous reads and writes with JSON 401", async ({ request }) => {
   for (const [method, path] of [
     ["get", "/access"], ["get", "/records"], ["get", "/records/example"],
@@ -47,7 +62,7 @@ test("API denies anonymous reads and writes with JSON 401", async ({ request }) 
     expect((await response.json()).error).toBe("Sign in to continue");
   }
 });
-test("login is responsive and signup remains available", async ({ page }) => {
+test("login is responsive and signup follows environment policy", async ({ page }) => {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/login");
@@ -55,8 +70,13 @@ test("login is responsive and signup remains available", async ({ page }) => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.goto("/signup");
-  await expect(page.getByRole("heading", { name: "Every artifact has a story. Share yours." })).toBeVisible();
-  await expect(page.locator('input[name="emailAddress"]')).toBeVisible();
+  if (process.env.E2E_HOSTED) {
+    await expect(page).toHaveURL(/\/login\?redirect=/);
+    await expect(page.getByRole("heading", { name: "Welcome back to the collection." })).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: "Every artifact has a story. Share yours." })).toBeVisible();
+    await expect(page.locator('input[name="emailAddress"]')).toBeVisible();
+  }
 });
 
 test("incorrect password stays on login", async ({ page }) => {
@@ -69,6 +89,17 @@ test("incorrect password stays on login", async ({ page }) => {
   expect(new URL(page.url()).pathname).toContain("/login");
 });
 
+test("hosted approved account reads the Neon catalog", async ({ page }) => {
+  test.skip(!process.env.E2E_HOSTED, "Run this check against the Vercel deployment.");
+  await page.goto("/");
+  const responsePromise = page.waitForResponse(response =>
+    response.url() === apiUrl + "/records" && response.request().method() === "GET");
+  await login(page, accounts[0]);
+  const response = await responsePromise;
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual([]);
+  await expect(page.getByRole("heading", { name: "No artifact records available" })).toBeVisible();
+});
 for (const account of accounts) {
   test(account.name + " signs in, reaches profile, and signs out", async ({ page }) => {
     const errors = [];

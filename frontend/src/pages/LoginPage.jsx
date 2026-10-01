@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import accounts from "../../../shared/dev-accounts.json";
+
 import LoadingSpinner from "../components/LoadingSpinner";
+
+// Only shown by Vite's local development build.
+const accounts = import.meta.env.DEV ? Array.from({ length: 5 }, (_, index) => ({
+  name: `Developer ${index + 1}`,
+  email: `dev${index + 1}@example.com`,
+})) : [];
 
 function safeDestination(value) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\\\r\n]/.test(value)) return "/";
