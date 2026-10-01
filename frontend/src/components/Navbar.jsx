@@ -30,7 +30,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/login" className="btn btn-ghost btn-sm">Sign in</Link>
-              <Link to="/signup" className="btn btn-primary btn-sm">Sign up</Link>
+              {import.meta.env.DEV && <Link to="/signup" className="btn btn-primary btn-sm">Sign up</Link>}
             </>
           ))}
         </div>
@@ -38,3 +38,4 @@ export default function Navbar() {
     </header>
   );
 }
+
