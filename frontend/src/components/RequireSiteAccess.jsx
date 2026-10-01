@@ -14,7 +14,6 @@ export default function RequireSiteAccess() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) return;
     const controller = new AbortController();
-    setAccess({ userId, status: "pending" });
 
     async function verify() {
       try {

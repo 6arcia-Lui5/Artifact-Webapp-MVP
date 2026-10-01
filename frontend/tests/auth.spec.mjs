@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const credentialsPath = new URL("../../.local/dev-accounts.json", import.meta.url);
 const accounts = fs.existsSync(credentialsPath) ? JSON.parse(fs.readFileSync(credentialsPath, "utf8")) : [];
+const apiUrl = process.env.E2E_API_URL || "http://localhost:3000/api";
 
 test("five developer accounts are configured", () => {
   expect(accounts, "Run npm run dev:accounts in backend before browser tests.").toHaveLength(5);
@@ -24,35 +25,28 @@ async function login(page, account) {
   // Managed development accounts use email/password without a new-device code.
   await page.waitForURL(url => !url.pathname.startsWith("/login"), { timeout: 15000 });
 }
-test("visitors can browse; contributor routes return to login", async ({ page, request }) => {
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "All Artifacts" })).toBeVisible();
-  const records = await request.get("http://localhost:3000/api/records");
-  expect(records.status()).toBe(200);
-  const data = await records.json();
-  if (data.length) {
-    await page.goto("/record/" + data[0].id);
-    await expect(page.getByRole("heading", { name: data[0].title, exact: true })).toBeVisible();
-  }
-  for (const route of ["/create", "/profile", "/edit/example"]) {
+test("visitors are sent to login before any catalog page loads", async ({ page }) => {
+  for (const route of ["/", "/collections", "/record/example", "/search", "/create", "/profile", "/edit/example"]) {
     await page.goto(route);
     await expect(page).toHaveURL(new RegExp("/login\\?redirect="));
     expect(new URL(page.url()).searchParams.get("redirect")).toBe(route);
     await expect(page.getByRole("heading", { name: "Welcome back to the collection." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "All Artifacts" })).toHaveCount(0);
   }
 });
 
-test("API denies anonymous contribution requests with JSON 401", async ({ request }) => {
+test("API denies anonymous reads and writes with JSON 401", async ({ request }) => {
   for (const [method, path] of [
-    ["get", "/records/my"], ["post", "/records"], ["put", "/records/example"],
+    ["get", "/access"], ["get", "/records"], ["get", "/records/example"],
+    ["get", "/records/my"], ["get", "/collections"], ["get", "/collections/example"],
+    ["post", "/records"], ["put", "/records/example"],
     ["delete", "/records/example"], ["post", "/collections"], ["post", "/users/sync"],
   ]) {
-    const response = await request[method]("http://localhost:3000/api" + path, { data: {}, maxRedirects: 0 });
+    const response = await request[method](apiUrl + path, { data: {}, maxRedirects: 0 });
     expect(response.status()).toBe(401);
     expect((await response.json()).error).toBe("Sign in to continue");
   }
 });
-
 test("login is responsive and signup remains available", async ({ page }) => {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -87,7 +81,7 @@ for (const account of accounts) {
     await expect(page.getByRole("heading", { name: "New Record" })).toBeVisible();
     await page.locator(".cl-userButtonTrigger").click();
     await page.getByText("Sign out", { exact: true }).click();
-    await expect(page.getByRole("heading", { name: "All Artifacts" })).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
     await page.goto("/profile");
     await expect(page).toHaveURL(/\/login\?redirect=/);
     expect(errors).toEqual([]);

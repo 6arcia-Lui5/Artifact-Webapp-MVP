@@ -4,13 +4,12 @@ An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzl
 
 ## Access
 
-- Anyone can browse the catalog, collections, and artifact detail pages.
-- Sign in at `/login`, or create an account at `/signup`.
-- Creating artifacts, managing your records, and editing/deleting your own records require authentication. The editing screen is still a placeholder.
-- Protected pages return you to your requested page after sign-in, including email verification.
-- Download/export functionality is not implemented yet. Any future download must use `RequireSignIn` in the UI and `requireApiAuth` on the API endpoint. Public browsing endpoints remain readable.
-- Account data is kept in a separate React Query cache per identity. Before contribution pages load, the Clerk user is synchronized into PostgreSQL.
-
+- Every catalog page, including search and artifact details, checks the Clerk session against the backend before rendering. Visitors go to `/login`; signed-in accounts outside the five approved IDs see an access-denied screen.
+- The backend applies the same allowlist to all routes, including catalog reads, record writes, and user sync. Missing sessions receive JSON 401; unapproved accounts receive JSON 403.
+- Set `ALLOWED_CLERK_USER_IDS` on the hosted backend to the five Clerk user IDs, separated by commas. IDs must come from the **same Clerk instance** configured on the hosted frontend and backend. If the variable is missing, hosted access fails closed.
+- In local development, the backend can read the five IDs from the ignored `.local/dev-accounts.json` created by `npm run dev:accounts`. Restart the backend after seeding. An explicit `ALLOWED_CLERK_USER_IDS` overrides that file.
+- `/signup` and its Clerk component remain available in local development. In the production build, account creation is hidden from the public login and the signup route itself is gated. Clerk cannot show its SignUp form to someone already signed in, so creating a new approved account after hosting requires a deliberate admin or invite workflow and an allowlist update. A newly registered Clerk account cannot browse the app or use its API.
+- Authentication gates app content and API data. A static frontend host may still serve the HTML, JavaScript, and public image assets to anyone; use host-level access control as well if those files must be private.
 ## Run locally
 
 Use a current Node version supported by Vite 8 (this checkout was verified with Node 24).
@@ -32,6 +31,8 @@ FRONTEND_URL=http://localhost:5173
 DATABASE_URL=<development-postgresql-url>
 CLERK_PUBLISHABLE_KEY=<same-development-publishable-key>
 CLERK_SECRET_KEY=<development-secret-key>
+# Optional locally; required on the hosted backend:
+ALLOWED_CLERK_USER_IDS=<clerk-user-id-1>,<clerk-user-id-2>,<clerk-user-id-3>,<clerk-user-id-4>,<clerk-user-id-5>
 ```
 
 Start `npm run dev` in each directory. Open http://localhost:5173.
@@ -74,15 +75,17 @@ npm run test:e2e
 
 Browser tests require both local servers, the five seeded accounts, and Microsoft Edge.
 The Playwright browser channel can be changed in `frontend/playwright.config.mjs`.
-Tests cover public browsing, protected routes/API calls, responsive login, incorrect passwords,
+Tests cover login-first browsing, protected routes/API calls, responsive login, incorrect passwords,
 and sign-in/sign-out with all five accounts. Tests use real Clerk sessions and synchronize developer users into the configured development database.
 No artifact records are created or deleted by the tests. Tracing, screenshots, and video are disabled for credential-handling tests.
 
 ## Where to add features
 
 - `frontend/src/pages`: screens and forms.
-- `frontend/src/components/RequireSignIn.jsx`: contributor-page access and user synchronization.
+- `frontend/src/components/RequireSiteAccess.jsx`: site entry check.
+- `frontend/src/components/RequireSignIn.jsx`: contributor-page user synchronization.
 - `frontend/hooks` and `frontend/lib`: data fetching and API calls.
 - `backend/src/routes` and `backend/src/controllers`: API routes and validation.
+- `backend/src/middleware/requireSiteAccess.ts`: approved-account check for all API routes.
 - `backend/src/middleware/requireApiAuth.ts`: JSON 401 responses for sign-in-only API operations.
 - `backend/src/db/schema.ts` and `queries.ts`: database fields and queries.
