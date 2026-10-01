@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Link, Navigate, useSearchParams } from "react-router";
-import accounts from "../../../shared/dev-accounts.json";
+
 import LoadingSpinner from "../components/LoadingSpinner";
+
+// Only shown by Vite's local development build.
+const accounts = import.meta.env.DEV ? Array.from({ length: 5 }, (_, index) => ({
+  name: `Developer ${index + 1}`,
+  email: `dev${index + 1}@example.com`,
+})) : [];
 
 function safeDestination(value) {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\\\r\n]/.test(value)) return "/";
@@ -37,21 +43,22 @@ export default function LoginPage({ mode = "login" }) {
       rootBox: { width: "100%" },
       cardBox: { width: "100%", boxShadow: "none", border: "1px solid #e5e5e5", borderRadius: "16px" },
       card: { boxShadow: "none" },
+      ...(!import.meta.env.DEV ? { footerAction: { display: "none" } } : {}),
     },
   };
 
   return (
     <div className="auth-page">
-      <Link to="/" className="auth-back"><ArrowLeftIcon size={16} aria-hidden="true" /> Back to artifacts</Link>
+      {import.meta.env.DEV && <Link to="/" className="auth-back"><ArrowLeftIcon size={16} aria-hidden="true" /> Back to artifacts</Link>}
       <div className="auth-layout">
         <section className="auth-intro" aria-labelledby="auth-title">
           <h1 id="auth-title">{signup ? "Every artifact has a story. Share yours." : "Welcome back to the collection."}</h1>
-          <p>{signup ? "Create an account to add artifacts and keep track of your contributions." : "Sign in to contribute artifacts and manage your records."}</p>
+          <p>{signup ? "Create an account to add artifacts and keep track of your contributions." : "Sign in with an approved account to view the artifact collection."}</p>
           <figure className="auth-artifact">
             <img src="/temporaryRomanCoin.png" alt="Two sides of an ancient Roman coin" width="480" height="320" />
             <figcaption>Discover the details. Preserve the story.</figcaption>
           </figure>
-          <p className="auth-public-note">Just exploring? <Link to="/">Browse the collection <ArrowRightIcon size={15} aria-hidden="true" /></Link></p>
+          {import.meta.env.DEV && <p className="auth-public-note">Just exploring? <Link to="/">Browse the collection <ArrowRightIcon size={15} aria-hidden="true" /></Link></p>}
         </section>
         <section className="auth-form" aria-label={signup ? "Create an account" : "Sign in"}>
           {signup ? (
@@ -83,3 +90,4 @@ export default function LoginPage({ mode = "login" }) {
     </div>
   );
 }
+

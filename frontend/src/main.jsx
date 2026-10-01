@@ -8,10 +8,11 @@ import SessionQueryProvider from "./components/SessionQueryProvider";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ClerkProvider signInUrl="/login" signUpUrl="/signup" afterSignOutUrl="/">
+    <ClerkProvider signInUrl="/login" signUpUrl={import.meta.env.DEV ? "/signup" : undefined} afterSignOutUrl="/">
       <BrowserRouter>
         <SessionQueryProvider><App /></SessionQueryProvider>
       </BrowserRouter>
     </ClerkProvider>
   </StrictMode>,
 );
+

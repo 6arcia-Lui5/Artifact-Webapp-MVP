@@ -6,11 +6,10 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: process.env.E2E_FRONTEND_URL || "http://localhost:5173",
     channel: "msedge",
     trace: "off",
     screenshot: "off",
     video: "off",
   },
 });
-
