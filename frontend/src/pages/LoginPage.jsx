@@ -41,17 +41,14 @@ export default function LoginPage({ mode = "login" }) {
   };
 
   return (
-    <div className="auth-page">
-      <Link to="/" className="auth-back"><ArrowLeftIcon size={16} aria-hidden="true" /> Back to artifacts</Link>
+    <div className="auth-page p-20">
       <div className="auth-layout">
-        <section className="auth-intro" aria-labelledby="auth-title">
+        <section className="auth-intro " aria-labelledby="auth-title">
           <h1 id="auth-title">{signup ? "Every artifact has a story. Share yours." : "Welcome back to the collection."}</h1>
           <p>{signup ? "Create an account to add artifacts and keep track of your contributions." : "Sign in to contribute artifacts and manage your records."}</p>
           <figure className="auth-artifact">
             <img src="/temporaryRomanCoin.png" alt="Two sides of an ancient Roman coin" width="480" height="320" />
-            <figcaption>Discover the details. Preserve the story.</figcaption>
           </figure>
-          <p className="auth-public-note">Just exploring? <Link to="/">Browse the collection <ArrowRightIcon size={15} aria-hidden="true" /></Link></p>
         </section>
         <section className="auth-form" aria-label={signup ? "Create an account" : "Sign in"}>
           {signup ? (

@@ -1,8 +1,14 @@
 import { Link } from "react-router";
-import { UserButton, useAuth } from "@clerk/react";
+import {
+  SignUpButton,
+  SignInButton,
+  UserButton,
+} from "@clerk/react";
 import { DraftingCompassIcon, PlusIcon, UserIcon, Search } from "lucide-react";
+import useAuth from "../../hooks/useAuthReq"
 
-function Navbar() {
+
+export default function Navbar() {
   const { isSignedIn } = useAuth();
 
   return <div className='navbar bg-purple-950 pb-0'>
