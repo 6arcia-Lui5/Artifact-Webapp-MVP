@@ -1,24 +1,162 @@
 import React, { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { useCreateRecord } from '../../hooks/useRecords';
+import { useObjectTypes, useCreateObjectType } from '../../hooks/useObjectTypes';
 import { ArrowLeftIcon, FileTextIcon, SparklesIcon, TypeIcon } from 'lucide-react';
 import { useUser } from '@clerk/react';
+import { recordFields } from "../components/recordFields";
+import { importRecords as importRecordsApi } from "../../lib/api";
+import { useMutation } from "@tanstack/react-query";
+
+function ObjectTypeInput({
+  value,
+  objectTypes,
+  loading,
+  createObjectType,
+  onChange,
+}) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedType = objectTypes.find(
+    (objectType) => objectType.id === value
+  );
+
+  const filteredTypes = objectTypes.filter((objectType) =>
+    objectType.name
+      .toLowerCase()
+      .includes(query.toLowerCase())
+  );
+
+  const handleSelect = (objectType) => {
+    // Store the UUID
+    onChange(objectType.id);
+
+    setQuery("");
+    setIsOpen(false);
+  };
+
+  const handleCreate = async () => {
+    const name = query.trim();
+
+    if (!name) return;
+
+    try {
+      const newObjectType =
+        await createObjectType.mutateAsync(name);
+
+      // Store the newly created UUID
+      onChange(newObjectType.id);
+
+      setQuery("");
+      setIsOpen(false);
+    } catch (error) {
+      console.error(
+        "Error creating object type:",
+        error
+      );
+    }
+  };
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        className="input input-bordered w-full bg-base-200"
+        value={
+          selectedType
+            ? selectedType.name
+            : query
+        }
+        placeholder={
+          loading
+            ? "Loading object types..."
+            : "Search or enter object type..."
+        }
+        disabled={
+          loading ||
+          createObjectType.isPending
+        }
+        onChange={(e) => {
+          setQuery(e.target.value);
+          onChange("");
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+      />
+
+      {isOpen && query && (
+        <div className="absolute z-50 mt-1 w-full rounded-box border border-base-300 bg-base-200 shadow-lg">
+          
+          {filteredTypes.map((objectType) => (
+            <button
+              type="button"
+              key={objectType.id}
+              className="block w-full px-4 py-2 text-left hover:bg-base-300"
+              onClick={() =>
+                handleSelect(objectType)
+              }
+            >
+              {objectType.name}
+            </button>
+          ))}
+
+          <div className="border-t border-base-300 p-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-primary w-full"
+              onClick={handleCreate}
+              disabled={
+                createObjectType.isPending
+              }
+            >
+              {createObjectType.isPending
+                ? "Creating..."
+                : `+ Create "${query}"`}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function CreatePage() {
   const { user } = useUser();
   const navigate = useNavigate();
   const createRecord = useCreateRecord();
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    imageUrl: "",
-    date: "",
-    material: "",
-    dimensions: "",
-    classification: "",
-    credit: "",
-    objectNumber: "",
+  const importRecords = useMutation({
+    mutationFn: async ({ file }) => {
+      return await importRecordsApi(file);
+    },
   });
+  const [formData, setFormData] = useState(
+    Object.fromEntries(
+      recordFields.map(({ key, type }) => [
+        key,
+        type === "checkbox" ? false : "",
+      ])
+    )
+  );
+  const { data: objectTypes = [], isLoading: objectTypesLoading } =
+  useObjectTypes();
+
+  const createObjectType = useCreateObjectType();
+
+
+
+
+  const shouldShowField = (field) => {
+  if (!field.condition) {
+    return true;
+  }
+
+    return formData[field.condition.field] === field.condition.value;
+  };
+
+
+  const [file, setFile] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,12 +178,26 @@ function CreatePage() {
       console.error("Error creating record:", error);
     }
   };
+
+  const handleImport = async (e) => {
+    e.preventDefault();
+
+    if(!user || !file) {
+      return;
+    }
+
+    try {
+      await importRecords.mutateAsync({
+        file,
+        userId: user.id,
+      });
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error importing records:", error);
+    }
+  };
   
-  console.log("Submitting record:", {
-  ...formData,
-  userId: user?.id,
-  collectionId: null,
-});
   return <div className='max-w-lg mx-auto'>
     <Link to="/" className='btn btn-ghost btn-sm gap-1 mb-4'>
       <ArrowLeftIcon className='size-4' /> Back
@@ -55,142 +207,152 @@ function CreatePage() {
       <div className='card-body'>
         <h1 className='card-title'>
           <SparklesIcon className='size-5 text-primary' />
-          New Record
+          Manually enter a new record
         </h1>
 
-        <form onSubmit={handleSubmit} className='space-y-4 mt-4'>
+        <p className="text-sm text-base-content/60">
+          Fields marked with <span className="text-error">*</span> are required.
+        </p>
 
-          {/* TITLE INPUT */}
-          <label className='input input-bordered flex items-center gap-2 bg-base-200'>
-            <TypeIcon className='size-4 text-base-content/50'/>
-            <input
-              type="text"
-              placeholder='Record title'
-              className='grow'
-              value={formData.title}
-              onChange={(e) => setFormData ({...formData, title: e.target.value })}
-              required
-              />
-          </label>
 
-          {/* IMAGE INPUT */}
-          <label className='input input-bordered flex items-center gap-2 bg-base-200'>
-            <TypeIcon className='size-4 text-base-content/50'/>
-            <input
-              type="url"
-              placeholder='Image URL'
-              className='grow'
-              value={formData.imageUrl}
-              onChange={(e) => setFormData ({...formData, imageUrl: e.target.value })}
-              required
-              />
-          </label>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {recordFields
+          .filter(shouldShowField)
+          .map(({ key, label, type, required, options, placeholder }) => (
+            <div key={key} className="form-control">
+              <label className="label">
+              <span className="label-text">
+                {label}
+                {required ? (
+                  <span className="text-error ml-1" aria-hidden="true">
+                    *
+                  </span>
+                ) : (
+                  <span className="text-base-content/60 ml-1 text-sm">
+                    (optional)
+                  </span>
+                )}
+                </span>
+              </label>
 
-          {/* IMAGE PREVIEW */}
-          {formData.imageUrl && (
-            <div className='rounded-box overflow-hidden'>
-              <img
-              src={formData.imageUrl}
-              alt="Image Preview"
-              className='w-full h-40 object-cover'
-              onError={(e) => (e.target.style.display = "none")}
+
+              {type === "object-type" ? (
+              <ObjectTypeInput
+                value={formData[key]}
+                objectTypes={objectTypes}
+                loading={objectTypesLoading}
+                createObjectType={createObjectType}
+                onChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    [key]: value,
+                  })
+                }
               />
+
+              ) : type === "select" ? (
+                <select
+                  className="select select-bordered w-full bg-base-200"
+                  value={formData[key] || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      [key]: e.target.value,
+                    })
+                  }
+                  required={required}
+                >
+                  <option value="">Select...</option>
+
+                  {options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : type === "textarea" ? (
+                <textarea
+                  className="textarea textarea-bordered bg-base-200"
+                  value={formData[key] || ""}
+                  placeholder={placeholder}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      [key]: e.target.value,
+                    })
+                  }
+                  required={required}
+                />
+              ) : type === "checkbox" ? (
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-primary"
+                  checked={!!formData[key]}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      [key]: e.target.checked,
+                    })
+                  }
+                  required={required}
+                />
+              ) : (
+                <input
+                  type={type}
+                  className="input input-bordered w-full bg-base-200"
+                  value={formData[key] || ""}
+                  placeholder={placeholder}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      [key]: e.target.value,
+                    })
+                  }
+                  required={required}
+                />
+              )}
             </div>
-          )}
+          ))}
 
-          <div className='form-control'>
-            <div className='flex items-start gap-2 p-3 rounded-box bg-base-200 border border-base-300'>
-              <FileTextIcon className='size-4 text-base-content/50 mt-1'/>
-              <textarea 
-              placeholder='Description'
-              className='grow bg-transparent resize-none focus:outline-none min-h-24'
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value })}
-              required
-              />
-            </div>
+
+          <button type="submit" className="btn btn-primary w-full">
+            Create Record
+          </button>
+        </form>
+        <div className="px-10">
+          <div className="flex items-center">
+            {/* Left line */}
+            <div className="flex-grow border-t border-gray-400"></div>
+
+            {/* Text */}
+            <span className="mx-4 text-gray-700 font-medium">OR</span>
+
+            {/* Right line */}
+            <div className="flex-grow border-t border-gray-400"></div>
           </div>
-
-          {/* DATE (i.e. circa 850 BCE) */}
-          <label className='input input-bordered flex items-center gap-2 bg-base-200'>
+        </div>
+        <h1 className='card-title'>
+          <SparklesIcon className='size-5 text-primary' />
+          Upload multiple records from spreadsheet
+        </h1>
+        <form onSubmit={handleImport} className='space-y-4'>
             <input
-              type="text"
-              placeholder="e.g. circa 850 BCE or 1200–1250 CE"
-              className='grow'
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              type="file"
+              accept='.xlsx, .xls, .csv'
+              className="file-input file-input-bordered w-full bg-base-200"
+              onChange={(e) => setFile(e.target.files[0])}
               required
             />
-          </label>
-
-          {/* MATERIAL DROP DOWN */}
-          <input
-            type="text"
-            placeholder="Material (e.g. Gold, Bronze)"
-            className="input input-bordered w-full bg-base-200"
-            value={formData.material}
-            onChange={(e) => setFormData({ ...formData, material: e.target.value })}
-            required
-          />
-
-          {/* DIMENSIONS */}
-          <input
-            type="text"
-            placeholder="Dimensions (e.g. 5cm x 2cm)"
-            className="input input-bordered w-full bg-base-200"
-            value={formData.dimensions}
-            onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
-            required
-          />
-
-          {/* CLASSIFICATION (coin, medalion, cup) */}
-          <select
-            className="select select-bordered w-full bg-base-200"
-            value={formData.classification}
-            onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
-            required
-          >
-            <option value="">Select classification</option>
-            <option value="coin">Coin</option>
-            <option value="medallion">Medallion</option>
-            <option value="cup">Cup</option>
-          </select>
-
-          {/* CREDIT (original sources) */}
-          <input
-            type="text"
-            placeholder="Credit (source/origin)"
-            className="input input-bordered w-full bg-base-200"
-            value={formData.credit}
-            onChange={(e) => setFormData({ ...formData, credit: e.target.value })}
-            required
-          />
-
-          <input
-            type="text"
-            placeholder="Object Number"
-            className="input input-bordered w-full bg-base-200"
-            value={formData.objectNumber}
-            onChange={(e) => setFormData({ ...formData, objectNumber: e.target.value })}
-            required
-          />
-
-          {createRecord.isError && (
-            <div role='alert' className='alert alert-error alert-sm'>
-              <span>Failed to create. Try again.{}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className='btn btn-primary w-full'
-            disabled={createRecord.isPending}
-          >
-            {createRecord.isPending ? (
-              <span className='loading loading-spinner' />
-            ) : (
-              "Create Record"
-            )}
+            <button
+              type="submit"
+              className='btn btn-primary w-full'
+              disabled={importRecords.isPending}
+            >
+              {importRecords.isPending ? (
+                <span className='loading loading-spinner' />
+              ) : (
+                "Upload File"
+              )}
           </button>
         </form>
       </div>

@@ -9,7 +9,7 @@ import {
 
 import Navbar from "./components/Navbar"
 
-import { Route, Routes } from "react-router"
+import { Route, Routes, Navigate } from "react-router"
 
 import HomePage from "./pages/HomePage"
 import CollectionPage from "./pages/CollectionPage"
@@ -19,6 +19,7 @@ import CreatePage from "./pages/CreatePage"
 import EditRecordPage from "./pages/EditRecordPage"
 import useAuthReq from "../hooks/useAuthReq";
 import useUserSync from "../hooks/useUserSync";
+import SearchPage from "./pages/SearchPage";
 
 function App() {
   const { isClerkLoaded, isSignedIn} = useAuthReq();
@@ -36,6 +37,7 @@ function App() {
         <Route path="/profile" element={isSignedIn ? <ProfilePage/> : <Navigate to={"/"} /> }/>
         <Route path="/create" element={isSignedIn ? <CreatePage/> : <Navigate to={"/"} /> }/>
         <Route path="/edit" element={isSignedIn ? <EditRecordPage/> : <Navigate to={"/"} /> }/>
+        <Route path="/search" element={<SearchPage />} />
       </Routes>
       </main>
     </div>
