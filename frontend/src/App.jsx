@@ -9,6 +9,16 @@ import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
 import RequireSignIn from "./components/RequireSignIn";
 import useAuthReq from "../hooks/useAuthReq";
+import {
+  Show,
+  SignUpButton,
+  SignInButton,
+  SignOutButton,
+  UserButton,
+  useUser,
+} from "@clerk/react";
+
+import SearchPage from "./pages/SearchPage";
 
 function App() {
   useAuthReq();
@@ -16,21 +26,16 @@ function App() {
   return (
     <div className="min-h-screen bg-base-100">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/collections" element={<CollectionPage />} />
-          <Route path="/record/:id" element={<RecordPage />} />
-          <Route path="/login/*" element={<LoginPage />} />
-          <Route path="/signup/*" element={<LoginPage mode="signup" />} />
-          <Route element={<RequireSignIn />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/create" element={<CreatePage />} />
-            <Route path="/edit/:id" element={<EditRecordPage />} />
-            <Route path="/edit" element={<EditRecordPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+      <main className="max-w-5xl mx-auto px-4 py-8" >
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/collections" element={<CollectionPage />} />
+        <Route path="/record/:id" element={<RecordPage />} />
+        <Route path="/profile" element={isSignedIn ? <ProfilePage/> : <Navigate to={"/"} /> }/>
+        <Route path="/create" element={isSignedIn ? <CreatePage/> : <Navigate to={"/"} /> }/>
+        <Route path="/edit" element={isSignedIn ? <EditRecordPage/> : <Navigate to={"/"} /> }/>
+        <Route path="/search" element={<SearchPage />} />
+      </Routes>
       </main>
     </div>
   );
