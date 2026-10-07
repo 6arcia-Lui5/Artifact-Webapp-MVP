@@ -1,0 +1,17 @@
+{
+  "model": "char CNN + BiGRU, multi-task (region + date bins)",
+  "region": {
+    "n_test": 972,
+    "accuracy": 0.644,
+    "top3_accuracy": 0.8735,
+    "macro_f1": 0.4797
+  },
+  "date": {
+    "n_test": 827,
+    "mae_years": 103.7,
+    "median_ae_years": 48.8,
+    "within_50_years": 0.5054,
+    "interval_mass": 0.52,
+    "interval_coverage_test": 0.8077
+  }
+}

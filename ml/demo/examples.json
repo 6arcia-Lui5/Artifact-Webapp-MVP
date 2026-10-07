@@ -1,0 +1,86 @@
+[
+  {
+    "label": "I.Sicily ISic000285: as listed",
+    "text": "cura # q mac # t trut # a turiu #",
+    "not_before": 1,
+    "not_after": 50,
+    "region": "Sicily"
+  },
+  {
+    "label": "I.Sicily ISic000285: wrong region planted",
+    "text": "cura # q mac # t trut # a turiu #",
+    "not_before": 1,
+    "not_after": 50,
+    "region": "Samaria"
+  },
+  {
+    "label": "I.Sicily ISic000796: as listed",
+    "text": "ενθαδε κιτε μακαρια μνημης καλλιτυχη εζη σεν ετη ⸙ πη ετελευτ εν δε τη προ ιε καλα ων φεβρουαριων ημε α σαββατω ⸙",
+    "not_before": 301,
+    "not_after": 400,
+    "region": "Sicily"
+  },
+  {
+    "label": "I.Sicily ISic000796: date moved 300 years",
+    "text": "ενθαδε κιτε μακαρια μνημης καλλιτυχη εζη σεν ετη ⸙ πη ετελευτ εν δε τη προ ιε καλα ων φεβρουαριων ημε α σαββατω ⸙",
+    "not_before": 1,
+    "not_after": 100,
+    "region": "Sicily"
+  },
+  {
+    "label": "IIP bsaf0001: as listed",
+    "text": "+ εγενετο τ παν εργν της ανεγερσεως του οικ ου των αγιων μαρτυρων υπερ σωτηριας κ αντλη μψως ϲαμουηλου κ των αυτου διφεροντων κ υπερ αν απαυσως των πολβοτων εν μη ιουνιω ινδ ιδʹ ετους ϛσʹ",
+    "not_before": 490,
+    "not_after": 701,
+    "region": "Judaea"
+  },
+  {
+    "label": "IIP bsaf0001: wrong region planted",
+    "text": "+ εγενετο τ παν εργν της ανεγερσεως του οικ ου των αγιων μαρτυρων υπερ σωτηριας κ αντλη μψως ϲαμουηλου κ των αυτου διφεροντων κ υπερ αν απαυσως των πολβοτων εν μη ιουνιω ινδ ιδʹ ετους ϛσʹ",
+    "not_before": 490,
+    "not_after": 701,
+    "region": "Asia Minor"
+  },
+  {
+    "label": "IIP elus0040: as listed",
+    "text": "+ ανεπαε ο μακαρ ιος γεωργιος βικτω ρ εν μη ξανθικω ιςʹ ι νδ ιβʹ ετους υογʹ +",
+    "not_before": 578,
+    "not_after": 578,
+    "region": "Negev"
+  },
+  {
+    "label": "IIP elus0040: date moved 300 years",
+    "text": "+ ανεπαε ο μακαρ ιος γεωργιος βικτω ρ εν μη ξανθικω ιςʹ ι νδ ιβʹ ετους υογʹ +",
+    "not_before": 278,
+    "not_after": 278,
+    "region": "Negev"
+  },
+  {
+    "label": "US Epigraphy CA.Berk.UC.HMA.L.8-4286: as listed",
+    "text": "d m s c agriilius # paga fecit c agriilio iasoni patrono et fra tri suo carissimo",
+    "not_before": 100,
+    "not_after": 125,
+    "region": "Italy"
+  },
+  {
+    "label": "US Epigraphy CA.Berk.UC.HMA.L.8-4286: wrong region planted",
+    "text": "d m s c agriilius # paga fecit c agriilio iasoni patrono et fra tri suo carissimo",
+    "not_before": 100,
+    "not_after": 125,
+    "region": "Coastal Plain"
+  },
+  {
+    "label": "US Epigraphy ITA.Rome.AAR.L.8990: as listed",
+    "text": "d m l titio l f iul celeri car nico sp coh viiii pr mon tani vixit ann xxxiiii m ii d vii mil annis xv fecit l titius melancoma patrono b m",
+    "not_before": 110,
+    "not_after": 175,
+    "region": "Italy"
+  },
+  {
+    "label": "US Epigraphy ITA.Rome.AAR.L.8990: date moved 300 years",
+    "text": "d m l titio l f iul celeri car nico sp coh viiii pr mon tani vixit ann xxxiiii m ii d vii mil annis xv fecit l titius melancoma patrono b m",
+    "not_before": 410,
+    "not_after": 475,
+    "region": "Italy"
+  }
+]

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Handheld Words · Record check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@0,400;0,700;1,400&family=Figtree:wght@400;500;600&family=Noto+Serif+Hebrew:wght@400&display=swap">
+<style>
+:root{
+  --slate:#E8ECEF;      /* page: pale stone */
+  --panel:#F7F8F9;
+  --ink:#1E2830;
+  --muted:#5B6873;
+  --line:#C9D1D7;
+  --porphyry:#6B2C3E;   /* listed by the database */
+  --verdigris:#2F7465;  /* predicted by the model */
+  --ochre:#A86E12;      /* flag */
+  --serif:"Gentium Book Plus","Noto Serif Hebrew",Georgia,serif;
+  --sans:"Figtree",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--slate);color:var(--ink);font:16px/1.5 var(--sans)}
+header{max-width:1120px;margin:0 auto;padding:40px 24px 8px}
+h1{font:400 2.4rem/1.1 var(--serif);margin:0 0 8px;letter-spacing:.01em}
+header p{margin:0;color:var(--muted);max-width:62ch}
+main{max-width:1120px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px;align-items:start}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+form{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px}
+label{display:block;font-weight:500;font-size:.9rem;margin:14px 0 4px}
+label:first-of-type{margin-top:0}
+textarea,input,select{width:100%;font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+textarea{font:1.15rem/1.5 var(--serif);min-height:140px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{color:var(--muted);font-size:.82rem;margin:4px 0 0}
+:focus-visible{outline:2px solid var(--verdigris);outline-offset:2px}
+.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+button{font:600 .95rem var(--sans);border-radius:4px;padding:10px 16px;cursor:pointer;border:1px solid var(--ink)}
+button.primary{background:var(--ink);color:#fff}
+button.secondary{background:transparent;color:var(--ink)}
+.examples{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.examples h2{font:600 .9rem var(--sans);margin:0 0 8px}
+.examples ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto}
+.examples button{border:none;background:none;padding:4px 0;font:400 .88rem var(--sans);color:var(--porphyry);text-align:left;text-decoration:underline;text-underline-offset:3px}
+
+#result{min-height:300px}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:32px;text-align:center}
+.verdict{font:400 1.9rem/1.2 var(--serif);margin:0 0 4px}
+.verdict.ok{color:var(--verdigris)}
+.verdict.bad{color:var(--ochre)}
+.clean{font:1.05rem var(--serif);color:var(--muted);margin:0 0 20px;word-break:break-word}
+
+/* the timeline: the one bold element */
+.timeline{position:relative;height:96px;margin:8px 0 28px}
+.axis{position:absolute;left:0;right:0;top:46px;height:2px;background:var(--line)}
+.tick{position:absolute;top:52px;font-size:.72rem;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.tick::before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:6px;background:var(--muted)}
+.band{position:absolute;height:14px;border-radius:2px;min-width:3px}
+.band.listed{top:12px;background:var(--porphyry)}
+.band.pred{top:28px;background:var(--verdigris);opacity:.85}
+.band.guess{top:24px;width:2px;height:22px;background:var(--ink);border-radius:0}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;margin-bottom:6px}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend .l::before{background:var(--porphyry)}
+.legend .p::before{background:var(--verdigris)}
+
+h3{font:600 1rem var(--sans);margin:20px 0 8px}
+.bars{display:grid;grid-template-columns:9.5em 1fr 3.2em;gap:6px 10px;align-items:center;font-size:.9rem}
+.bars .track{height:10px;background:#dde3e7;border-radius:2px;overflow:hidden}
+.bars .fill{height:100%;background:var(--verdigris)}
+.bars .is-listed{font-weight:600;color:var(--porphyry)}
+.bars .is-listed + .track .fill{background:var(--porphyry)}
+.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.flag{border-left:4px solid var(--ochre);background:#fff;padding:10px 14px;margin:8px 0;border-radius:0 4px 4px 0}
+.flag strong{display:block}
+.flag p{margin:2px 0 0;font-size:.9rem;color:var(--muted)}
+footer{max-width:1120px;margin:0 auto;padding:8px 24px 40px;color:var(--muted);font-size:.82rem}
+.metrics{display:flex;gap:24px;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){.band.pred{transition:left .5s ease,width .5s ease}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Does the record match the text?</h1>
+  <p>Paste an inscription and the date and region a database lists for it. The model reads the text alone, predicts when and where it was made, and flags the record if the two disagree.</p>
+</header>
+<main>
+  <form id="f">
+    <label for="text">Inscription text</label>
+    <textarea id="text" required placeholder="d m s lurius zosimus vix annis vii ..."></textarea>
+    <p class="hint">Latin, Greek, Hebrew or Aramaic. Leiden brackets are fine: (expansions) are dropped and [restorations] count as gaps.</p>
+    <div class="row">
+      <div><label for="nb">Listed from (year)</label><input id="nb" type="number" placeholder="e.g. 100"></div>
+      <div><label for="na">Listed to (year)</label><input id="na" type="number" placeholder="e.g. 200"></div>
+    </div>
+    <p class="hint">Use negative numbers for BCE.</p>
+    <label for="region">Listed region</label>
+    <select id="region"><option value="">Not given</option></select>
+    <label for="model">Model</label>
+    <select id="model"><option value="deep">Deep model (character CNN + GRU)</option><option value="baseline">Baseline (TF-IDF + linear)</option></select>
+    <div class="actions">
+      <button class="primary" type="submit">Check record</button>
+      <button class="secondary" type="button" id="clear">Clear</button>
+    </div>
+    <div class="examples">
+      <h2>Try a held-out record</h2>
+      <ul id="ex"></ul>
+    </div>
+  </form>
+  <section id="result" aria-live="polite">
+    <div class="empty">Results show here: a timeline of the listed and predicted dates, the region the text points to, and any flags.</div>
+  </section>
+</main>
+<footer>
+  <div class="metrics" id="metrics"></div>
+  <p>Trained on public EpiDoc corpora: I.Sicily, Inscriptions of Israel/Palestine, and U.S. Epigraphy. Flags are prompts for review, not corrections.</p>
+</footer>
+<script>
+const API = location.origin.startsWith("http") ? "" : "http://localhost:8001";
+const $ = id => document.getElementById(id);
+let MIN=-800, MAX=1000;
+const pct = y => ((Math.max(MIN,Math.min(MAX,y))-MIN)/(MAX-MIN))*100;
+// zoom the timeline to the dates in play, padded and rounded to 100 years
+function zoom(ys){
+  const lo=Math.min(...ys), hi=Math.max(...ys);
+  const pad=Math.max(100,(hi-lo)*0.25);
+  MIN=Math.max(-800,Math.floor((lo-pad)/100)*100); MAX=Math.min(1000,Math.ceil((hi+pad)/100)*100);
+}
+function ticksFor(){
+  const span=MAX-MIN, step=span>1000?300:span>500?100:span>250?50:25;
+  const out=[]; for(let y=Math.ceil(MIN/step)*step;y<=MAX;y+=step) out.push(y); return out;
+}
+const fmt = y => y<0 ? `${-y} BCE` : `${y} CE`;
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function init(){
+  try{
+    const h = await (await fetch(API+"/health")).json();
+    h.regions.forEach(r=>$("region").insertAdjacentHTML("beforeend",`<option>${esc(r)}</option>`));
+    const m = h.metrics||{};
+    const parts=[];
+    const c=m.comparison;
+    if(c){
+      parts.push(`On ${c.n_test_region} held-out records, the deep model names the right region ${(c["deep+avg"].region_accuracy*100).toFixed(0)}% of the time and dates them within ${c["deep+avg"].date_median_error_years} years (median)`);
+      parts.push(`Baseline: ${(c.baseline.region_accuracy*100).toFixed(0)}% and ${c.baseline.date_median_error_years} years`);
+    }
+    if(m.flagging) parts.push(`Planted errors caught: ${(m.flagging.planted_errors.date_detection_rate*100).toFixed(0)}% of dates moved ${m.flagging.planted_errors.date_shift_years} years, ${(m.flagging.planted_errors.region_swap_detection_rate*100).toFixed(0)}% of wrong regions`);
+    $("metrics").innerHTML = parts.map(p=>`<span>${esc(p)}</span>`).join("");
+  }catch(e){
+    $("result").innerHTML = `<div class="empty">Can't reach the model service. Start it with <code>uvicorn service:app --port 8001</code> and reload.</div>`;
+  }
+  try{
+    const ex = await (await fetch(API+"/examples")).json();
+    ex.forEach((e,i)=>{
+      $("ex").insertAdjacentHTML("beforeend",`<li><button type="button" data-i="${i}">${esc(e.label)}</button></li>`);
+    });
+    $("ex").onclick = ev=>{
+      const i = ev.target.dataset.i; if(i===undefined) return;
+      const e = ex[i];
+      $("text").value=e.text; $("nb").value=e.not_before??""; $("na").value=e.not_after??""; $("region").value=e.region??"";
+      $("f").requestSubmit();
+    };
+  }catch(e){}
+}
+
+$("clear").onclick=()=>{$("f").reset();$("result").innerHTML=`<div class="empty">Results show here: a timeline of the listed and predicted dates, the region the text points to, and any flags.</div>`};
+
+$("f").onsubmit = async ev=>{
+  ev.preventDefault();
+  const num = v => v==="" ? null : parseInt(v,10);
+  const body = {text:$("text").value, not_before:num($("nb").value), not_after:num($("na").value), region:$("region").value||null, model:$("model").value};
+  $("result").innerHTML = `<div class="empty">Reading the text…</div>`;
+  let r;
+  try{ r = await (await fetch(API+"/check",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json(); }
+  catch(e){ $("result").innerHTML=`<div class="empty">The check failed: the model service didn't answer. Make sure it is running on port 8001.</div>`; return; }
+  render(r, body);
+};
+
+function render(r, b){
+  const d = r.date;
+  const hasListed = b.not_before!==null || b.not_after!==null;
+  const lnb = b.not_before ?? b.not_after, lna = b.not_after ?? b.not_before;
+  let verdict;
+  if(r.flagged) verdict = `<p class="verdict bad">Flag for review</p>`;
+  else if(hasListed || b.region) verdict = `<p class="verdict ok">Consistent with the text</p>`;
+  else verdict = `<p class="verdict ok">Prediction</p>`;
+
+  zoom(hasListed?[d.low,d.high,lnb,lna]:[d.low,d.high]);
+  const ticks = ticksFor().map(y=>`<span class="tick" style="left:${pct(y)}%">${fmt(y)}</span>`).join("");
+  const listedBand = hasListed ? `<div class="band listed" style="left:${pct(lnb)}%;width:${pct(lna)-pct(lnb)}%" title="Listed ${fmt(lnb)} to ${fmt(lna)}"></div>` : "";
+  const timeline = `
+    <div class="legend">${hasListed?`<span class="l">Listed: ${lnb===lna?fmt(lnb):`${fmt(lnb)} to ${fmt(lna)}`}</span>`:""}<span class="p">Predicted: ${fmt(d.low)} to ${fmt(d.high)}, best guess ${fmt(d.year)}</span></div>
+    <div class="timeline" role="img" aria-label="Timeline of listed and predicted dates">
+      ${listedBand}
+      <div class="band pred" style="left:${pct(d.low)}%;width:${pct(d.high)-pct(d.low)}%"></div>
+      <div class="band guess" style="left:${pct(d.year)}%"></div>
+      <div class="axis"></div>${ticks}
+    </div>`;
+
+  const listedReg = b.region;
+  const top = Object.entries(r.region_probs).slice(0,6);
+  if(listedReg && !top.find(([k])=>k===listedReg) && r.region_probs[listedReg]!==undefined) top.push([listedReg, r.region_probs[listedReg]]);
+  const bars = top.map(([k,v])=>`<span class="${k===listedReg?"is-listed":""}">${esc(k)}${k===listedReg?" (listed)":""}</span><div class="track"><div class="fill" style="width:${Math.max(1,v*100)}%"></div></div><span class="num">${(v*100).toFixed(0)}%</span>`).join("");
+
+  const flags = r.flags.map(f=>`<div class="flag"><strong>${esc(f.message)}</strong><p>Listed ${esc(f.listed)}. Text suggests ${esc(f.predicted)}.</p></div>`).join("");
+
+  $("result").innerHTML = `${verdict}<p class="clean">${esc(r.clean_text)}</p>${flags}
+    <h3>Date</h3>${timeline}
+    <h3>Region</h3><div class="bars">${bars}</div>
+    ${r.region_note?`<p class="hint">${esc(r.region_note)}</p>`:""}`;
+}
+init();
+</script>
+</body>
+</html>

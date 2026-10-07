@@ -1,0 +1,18 @@
+{
+  "model": "TF-IDF char n-grams + linear models",
+  "region": {
+    "n_test": 972,
+    "accuracy": 0.6523,
+    "top3_accuracy": 0.8899,
+    "macro_f1": 0.5337
+  },
+  "date": {
+    "n_test": 827,
+    "mae_years": 126.3,
+    "median_ae_years": 85.6,
+    "within_50_years": 0.3337,
+    "interval_half_width_80": 213.3,
+    "interval_coverage_test": 0.8694,
+    "predict_mean_baseline_mae": 242.6
+  }
+}
