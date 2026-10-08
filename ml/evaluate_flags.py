@@ -94,7 +94,7 @@ def main(model="deep"):
     if model == "deep":
         Path("demo").mkdir(exist_ok=True)
         Path("demo/examples.json").write_text(json.dumps(examples, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(json.dumps(m, indent=2), encoding="utf-8")
+    print(json.dumps(m, indent=2))
 
 
 if __name__ == "__main__":
