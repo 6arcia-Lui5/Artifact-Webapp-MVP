@@ -99,7 +99,11 @@ class Predictor:
         }
 
     def check(self, text, not_before=None, not_after=None, region=None):
-        p = self.predict(text)
+        return self.check_prediction(self.predict(text), not_before, not_after, region)
+
+    def check_prediction(self, pred, not_before=None, not_after=None, region=None):
+        """Apply the flag rules to a prediction already made by predict()."""
+        p = dict(pred)
         flags = []
         if not_before is not None or not_after is not None:
             nb = not_before if not_before is not None else not_after
