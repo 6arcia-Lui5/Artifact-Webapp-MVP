@@ -40,6 +40,11 @@ def norm_region(r):
 class Predictor:
     def __init__(self, model="deep"):
         self.base = joblib.load(HERE / "models" / "baseline.joblib")
+        #Older scikit-learn versions expect this setting was having issues on my version of python
+        # Figured I'd add handling for multiple versions rather than just forcing full updates
+        if not hasattr(self.base["region_clf"], "multi_class"):
+            self.base["region_clf"].multi_class = "auto"
+
         self.deep = None
         if model == "deep" and (HERE / "models" / "deep.pt").exists():
             import torch
