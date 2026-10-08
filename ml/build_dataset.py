@@ -5,6 +5,7 @@ Sources (all public on GitHub):
   - I.Sicily      https://github.com/ISicily/ISicily
   - IIP           https://github.com/Brown-University-Library/iip-texts
   - US Epigraphy  https://github.com/Brown-University-Library/usep-data
+  - EDH (optional) https://zenodo.org/records/3575155  (unzip all parts into data/EDH)
 
 Each inscription becomes one row with:
   id, corpus, language, text, not_before, not_after, region, place,
@@ -26,7 +27,7 @@ XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 NS = {"t": TEI}
 
 # Tags whose content is NOT on the stone (editor's additions).
-DROP_TAGS = {"ex", "note", "supplied", "del", "corr", "reg", "orig_alt"}
+DROP_TAGS = {"ex", "note", "supplied", "del", "corr", "reg", "orig_alt", "head"}
 # Tags that stand for lost or unreadable text.
 GAP_TAGS = {"gap"}
 LINE_TAGS = {"lb"}
@@ -160,6 +161,14 @@ def parse_file(path, corpus):
         na = year(d[0].get("notAfter")) if d else None
         region = first_text(root, "//t:origin//t:region")
         place = first_text(root, "//t:origin//t:settlement")
+    elif corpus == "edh":
+        d = root.xpath("//t:origDate", namespaces=NS)
+        nb = na = None
+        if d:
+            nb = year(d[0].get("notBefore") or d[0].get("notBefore-custom"))
+            na = year(d[0].get("notAfter") or d[0].get("notAfter-custom"))
+        region = first_text(root, "//t:origPlace/t:placeName[@type='provinceItalicRegion']").rstrip("?").strip()
+        place = first_text(root, "//t:origPlace/t:placeName[not(@type)]")
     else:  # usep
         d = root.xpath("//t:origin/t:date", namespaces=NS)
         nb = year(d[0].get("notBefore")) if d else None
@@ -198,9 +207,13 @@ def main():
         ("isicily", base / "ISicily" / "inscriptions"),
         ("iip", base / "iip-texts" / "epidoc-files"),
         ("usep", base / "usep-data" / "xml_inscriptions"),
+        ("edh", base / "EDH"),   # skipped if the folder is missing
     ]
     rows = []
     for corpus, folder in sources:
+        if not folder.exists():
+            print(f"{corpus}: folder not found, skipped ({folder})")
+            continue
         n = 0
         for p in sorted(folder.rglob("*.xml")):
             if p.name.lower().startswith(("aatest", "template")):

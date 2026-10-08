@@ -35,7 +35,7 @@ def main(model="deep"):
     caught_date = caught_region = 0
     examples = []
     per_corpus = {}
-    names = {'isicily': 'I.Sicily', 'iip': 'IIP', 'usep': 'US Epigraphy'}
+    names = {'isicily': 'I.Sicily', 'iip': 'IIP', 'usep': 'US Epigraphy', 'edh': 'EDH'}
     te['corpus_name'] = te.corpus.map(names)
     for _, r in te.iterrows():
         nb = int(r.not_before) if r.date_ok else None
@@ -61,7 +61,7 @@ def main(model="deep"):
             # demo examples: correct records the model also gets right,
             # plus copies with a planted error, a few from each corpus
             if (nb is not None and 30 < len(r.text) < 220 and not out["flagged"]
-                    and out["region"] == reg and per_corpus.get(r.corpus, 0) < 2
+                    and out["region"] == reg and per_corpus.get(r.corpus, 0) < 2 and len(examples) < 16
                     and random.random() < 0.15):
                 per_corpus[r.corpus] = per_corpus.get(r.corpus, 0) + 1
                 name = f"{r.corpus_name} {r.id.split(':')[1]}"

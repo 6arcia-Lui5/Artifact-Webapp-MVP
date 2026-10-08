@@ -36,8 +36,16 @@ removed, and lost text becomes `#`. This matches what a new record will look lik
 Labels:
 - **Date**: the listed not-before / not-after range. Only ranges of 300 years or
   less, between 800 BCE and 1000 CE, are used for training.
-- **Region**: Sicily, regions of Israel/Palestine (Judaea, Negev, Galilee, ...),
-  and broad regions for U.S. Epigraphy objects (Italy, Greece, Egypt, ...).
+- **Region**: Roman provinces, as EDH records them (Italia, Sicilia, Baetica,
+  Britannia, ...). Italy's regiones and Rome are grouped as Italia. U.S. Epigraphy's
+  modern country names are mapped to provinces (Egypt to Aegyptus, and so on).
+  Israel/Palestine keeps IIP's finer regions (Judaea, Negev, Galilee, ...).
+  Regions with fewer than 60 inscriptions are grouped as "Other".
+- **Split**: decided by a hash of the text, so an inscription that appears in two
+  corpora always lands in the same split and can't leak into the test set.
+
+Note: the trained models in `models/` were made before EDH was added and use the
+older, broader region names. Retrain to get the province-level models.
 
 ## How it works
 
@@ -100,6 +108,10 @@ git clone --depth 1 https://github.com/ISicily/ISicily
 git clone --depth 1 https://github.com/Brown-University-Library/iip-texts
 git clone --depth 1 https://github.com/Brown-University-Library/usep-data
 cd ../ml
+
+# optional: EDH (about 81,000 Latin inscriptions). Download all eight
+# edhEpidocDump_*.zip files from https://zenodo.org/records/3575155 and
+# unzip them into ../data/EDH. build_dataset.py picks them up if present.
 
 # 2. build data and train (about 10 minutes on a laptop CPU)
 python build_dataset.py --data-dir ../data
