@@ -101,9 +101,15 @@ def predict(model, X, bs=256):
     return np.concatenate(rp), np.concatenate(dp)
 
 
-def main(epochs=24, device="auto", batch_size=64):
+def main(epochs=24, device="auto", batch_size=64, miopen=False):
     dev = pick_device(device)
     print(f"training on {dev}" + (f" ({torch.cuda.get_device_name(0)})" if dev.type == "cuda" else ""), flush=True)
+    if dev.type == "cuda" and torch.version.hip and not miopen:
+        # On AMD GPUs, MIOpen compiles some kernels on the fly, and on Windows
+        # that can fail (e.g. clashing with Visual Studio headers). PyTorch's
+        # own GPU kernels avoid that and are fast enough for this model.
+        torch.backends.cudnn.enabled = False
+        print("AMD GPU: using PyTorch's own kernels instead of MIOpen (add --miopen to use it)", flush=True)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     torch.set_num_threads(max(1, torch.get_num_threads()))
@@ -252,5 +258,6 @@ if __name__ == "__main__":
     ap.add_argument("--epochs", type=int, default=24)
     ap.add_argument("--device", default="auto", help="auto, cuda or cpu")
     ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument("--miopen", action="store_true", help="AMD only: use MIOpen kernels")
     a = ap.parse_args()
-    main(a.epochs, a.device, a.batch_size)
+    main(a.epochs, a.device, a.batch_size, a.miopen)
