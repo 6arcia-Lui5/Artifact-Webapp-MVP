@@ -35,7 +35,7 @@ def main(model="deep"):
     caught_date = caught_region = 0
     examples = []
     per_corpus = {}
-    names = {'isicily': 'I.Sicily', 'iip': 'IIP', 'usep': 'US Epigraphy', 'edh': 'EDH'}
+    names = {'isicily': 'I.Sicily', 'iip': 'IIP', 'usep': 'US Epigraphy', 'edh': 'EDH', 'lire': 'EDCS'}
     te['corpus_name'] = te.corpus.map(names)
     for _, r in te.iterrows():
         nb = int(r.not_before) if r.date_ok else None
@@ -58,22 +58,27 @@ def main(model="deep"):
             wrong = random.choice([x for x in regions if x != reg])
             o2 = p.check(r.text, None, None, wrong)
             caught_region += any(f["field"] == "region" for f in o2["flags"])
-            # demo examples: correct records the model also gets right,
-            # plus copies with a planted error, a few from each corpus
+            # demo examples: a record the model gets right as listed, paired
+            # with a copy that has a planted error. Both are checked with the
+            # exact inputs the demo page sends, and the pair is kept only if
+            # the real one is clean and the planted one is flagged.
             if (nb is not None and 30 < len(r.text) < 220 and not out["flagged"]
-                    and out["region"] == reg and per_corpus.get(r.corpus, 0) < 2 and len(examples) < 16
-                    and random.random() < 0.15):
-                per_corpus[r.corpus] = per_corpus.get(r.corpus, 0) + 1
+                    and out["region"] == reg and per_corpus.get(r.corpus, 0) < 2
+                    and len(examples) < 16 and random.random() < 0.15):
                 name = f"{r.corpus_name} {r.id.split(':')[1]}"
-                s2 = SHIFT if (nb + na) / 2 < 200 else -SHIFT
-                examples.append({"label": f"{name}: as listed", "text": r.text,
-                                 "not_before": nb, "not_after": na, "region": reg})
-                if per_corpus[r.corpus] == 1:
-                    examples.append({"label": f"{name}: wrong region planted", "text": r.text,
-                                     "not_before": nb, "not_after": na, "region": wrong})
+                real = {"label": f"{name}: as listed", "text": r.text,
+                        "not_before": nb, "not_after": na, "region": reg}
+                if per_corpus.get(r.corpus, 0) == 0:
+                    planted = dict(real, label=f"{name}: wrong region planted", region=wrong)
                 else:
-                    examples.append({"label": f"{name}: date moved {SHIFT} years", "text": r.text,
-                                     "not_before": nb + s2, "not_after": na + s2, "region": reg})
+                    s2 = SHIFT if (nb + na) / 2 < 200 else -SHIFT
+                    planted = dict(real, label=f"{name}: date moved {SHIFT} years",
+                                   not_before=nb + s2, not_after=na + s2)
+                ok_real = not p.check(real["text"], real["not_before"], real["not_after"], real["region"])["flagged"]
+                ok_planted = p.check(planted["text"], planted["not_before"], planted["not_after"], planted["region"])["flagged"]
+                if ok_real and ok_planted:
+                    per_corpus[r.corpus] = per_corpus.get(r.corpus, 0) + 1
+                    examples += [real, planted]
 
     m = {
         "model": p.model_name,
