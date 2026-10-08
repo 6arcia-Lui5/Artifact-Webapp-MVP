@@ -1,86 +1,114 @@
 [
   {
-    "label": "I.Sicily ISic000285: as listed",
-    "text": "cura # q mac # t trut # a turiu #",
-    "not_before": 1,
-    "not_after": 50,
-    "region": "Sicily"
+    "label": "I.Sicily ISic000015: as listed",
+    "text": "m aurelio antonino caes imp l septimi se veri pii arabici adi abenici p p aug filio res p panhor d d",
+    "not_before": 196,
+    "not_after": 197,
+    "region": "Sicilia"
   },
   {
-    "label": "I.Sicily ISic000285: wrong region planted",
-    "text": "cura # q mac # t trut # a turiu #",
-    "not_before": 1,
-    "not_after": 50,
-    "region": "Samaria"
+    "label": "I.Sicily ISic000015: wrong region planted",
+    "text": "m aurelio antonino caes imp l septimi se veri pii arabici adi abenici p p aug filio res p panhor d d",
+    "not_before": 196,
+    "not_after": 197,
+    "region": "Germania and Raetia"
   },
   {
-    "label": "I.Sicily ISic000796: as listed",
-    "text": "ενθαδε κιτε μακαρια μνημης καλλιτυχη εζη σεν ετη ⸙ πη ετελευτ εν δε τη προ ιε καλα ων φεβρουαριων ημε α σαββατω ⸙",
-    "not_before": 301,
+    "label": "I.Sicily ISic001161: as listed",
+    "text": "# φολοινια # αιου κα # φολοινι # ματηρ #",
+    "not_before": 101,
+    "not_after": 200,
+    "region": "Sicilia"
+  },
+  {
+    "label": "I.Sicily ISic001161: date moved 300 years",
+    "text": "# φολοινια # αιου κα # φολοινι # ματηρ #",
+    "not_before": 401,
+    "not_after": 500,
+    "region": "Sicilia"
+  },
+  {
+    "label": "IIP beth0227: as listed",
+    "text": "זה משכבו של יודן בן לוי לוי לעולם בשלום יהי שוי שוי משכבו בשלום של יודן בן לוי",
+    "not_before": 200,
     "not_after": 400,
-    "region": "Sicily"
+    "region": "Levant"
   },
   {
-    "label": "I.Sicily ISic000796: date moved 300 years",
-    "text": "ενθαδε κιτε μακαρια μνημης καλλιτυχη εζη σεν ετη ⸙ πη ετελευτ εν δε τη προ ιε καλα ων φεβρουαριων ημε α σαββατω ⸙",
-    "not_before": 1,
+    "label": "IIP beth0227: wrong region planted",
+    "text": "זה משכבו של יודן בן לוי לוי לעולם בשלום יהי שוי שוי משכבו בשלום של יודן בן לוי",
+    "not_before": 200,
+    "not_after": 400,
+    "region": "Asia Minor and Cyprus"
+  },
+  {
+    "label": "IIP beth0250: as listed",
+    "text": "זו ארונו של רבי הליל בנו של רבי לווי שעשה את המערה הזו",
+    "not_before": 200,
+    "not_after": 400,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP beth0250: date moved 300 years",
+    "text": "זו ארונו של רבי הליל בנו של רבי לווי שעשה את המערה הזו",
+    "not_before": -100,
     "not_after": 100,
-    "region": "Sicily"
+    "region": "Levant"
   },
   {
-    "label": "IIP bsaf0001: as listed",
-    "text": "+ εγενετο τ παν εργν της ανεγερσεως του οικ ου των αγιων μαρτυρων υπερ σωτηριας κ αντλη μψως ϲαμουηλου κ των αυτου διφεροντων κ υπερ αν απαυσως των πολβοτων εν μη ιουνιω ινδ ιδʹ ετους ϛσʹ",
-    "not_before": 490,
-    "not_after": 701,
-    "region": "Judaea"
-  },
-  {
-    "label": "IIP bsaf0001: wrong region planted",
-    "text": "+ εγενετο τ παν εργν της ανεγερσεως του οικ ου των αγιων μαρτυρων υπερ σωτηριας κ αντλη μψως ϲαμουηλου κ των αυτου διφεροντων κ υπερ αν απαυσως των πολβοτων εν μη ιουνιω ινδ ιδʹ ετους ϛσʹ",
-    "not_before": 490,
-    "not_after": 701,
-    "region": "Asia Minor"
-  },
-  {
-    "label": "IIP elus0040: as listed",
-    "text": "+ ανεπαε ο μακαρ ιος γεωργιος βικτω ρ εν μη ξανθικω ιςʹ ι νδ ιβʹ ετους υογʹ +",
-    "not_before": 578,
-    "not_after": 578,
-    "region": "Negev"
-  },
-  {
-    "label": "IIP elus0040: date moved 300 years",
-    "text": "+ ανεπαε ο μακαρ ιος γεωργιος βικτω ρ εν μη ξανθικω ιςʹ ι νδ ιβʹ ετους υογʹ +",
-    "not_before": 278,
-    "not_after": 278,
-    "region": "Negev"
-  },
-  {
-    "label": "US Epigraphy CA.Berk.UC.HMA.L.8-4286: as listed",
-    "text": "d m s c agriilius # paga fecit c agriilio iasoni patrono et fra tri suo carissimo",
+    "label": "US Epigraphy CA.Malibu.JPGM.L.83.AA.209: as listed",
+    "text": "dis manibus l caltili stephani caltiliae moschidis",
     "not_before": 100,
     "not_after": 125,
-    "region": "Italy"
+    "region": "Italia"
   },
   {
-    "label": "US Epigraphy CA.Berk.UC.HMA.L.8-4286: wrong region planted",
-    "text": "d m s c agriilius # paga fecit c agriilio iasoni patrono et fra tri suo carissimo",
+    "label": "US Epigraphy CA.Malibu.JPGM.L.83.AA.209: wrong region planted",
+    "text": "dis manibus l caltili stephani caltiliae moschidis",
     "not_before": 100,
     "not_after": 125,
-    "region": "Coastal Plain"
+    "region": "Asia Minor and Cyprus"
   },
   {
-    "label": "US Epigraphy ITA.Rome.AAR.L.8990: as listed",
-    "text": "d m l titio l f iul celeri car nico sp coh viiii pr mon tani vixit ann xxxiiii m ii d vii mil annis xv fecit l titius melancoma patrono b m",
-    "not_before": 110,
-    "not_after": 175,
-    "region": "Italy"
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.320AandB: as listed",
+    "text": "d m syntice f satyro coiugi suo b m",
+    "not_before": 1,
+    "not_after": 200,
+    "region": "Italia"
   },
   {
-    "label": "US Epigraphy ITA.Rome.AAR.L.8990: date moved 300 years",
-    "text": "d m l titio l f iul celeri car nico sp coh viiii pr mon tani vixit ann xxxiiii m ii d vii mil annis xv fecit l titius melancoma patrono b m",
-    "not_before": 410,
-    "not_after": 475,
-    "region": "Italy"
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.320AandB: date moved 300 years",
+    "text": "d m syntice f satyro coiugi suo b m",
+    "not_before": 301,
+    "not_after": 500,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000022: as listed",
+    "text": "v p helvacius c p l abies nonia t f secund p helvacius p et noniaes l felicio in fr p xvi in ag p xvi",
+    "not_before": -30,
+    "not_after": -1,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000022: wrong region planted",
+    "text": "v p helvacius c p l abies nonia t f secund p helvacius p et noniaes l felicio in fr p xvi in ag p xvi",
+    "not_before": -30,
+    "not_after": -1,
+    "region": "Britannia"
+  },
+  {
+    "label": "EDH HD000408: as listed",
+    "text": "imp t aelio antonino caes aug templ miner aug sac apisa minus ex arca publlica fecerunt sufetes macer et baliato",
+    "not_before": 138,
+    "not_after": 161,
+    "region": "Africa"
+  },
+  {
+    "label": "EDH HD000408: date moved 300 years",
+    "text": "imp t aelio antonino caes aug templ miner aug sac apisa minus ex arca publlica fecerunt sufetes macer et baliato",
+    "not_before": 438,
+    "not_after": 461,
+    "region": "Africa"
   }
 ]
