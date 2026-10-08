@@ -70,8 +70,8 @@ def main():
     }
     joblib.dump({"vec": vec, "region_clf": clf, "date_reg": reg,
                  "date_half_width": half_width}, "models/baseline.joblib")
-    Path("reports/baseline_metrics.json").write_text(json.dumps(metrics, indent=2))
-    print(json.dumps(metrics, indent=2))
+    Path("reports/baseline_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    print(json.dumps(metrics, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

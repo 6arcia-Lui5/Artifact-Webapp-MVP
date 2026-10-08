@@ -248,8 +248,8 @@ def main(epochs=24, device="auto", batch_size=64, miopen=False):
     model = model.cpu()
     torch.save({"state": model.state_dict(), "vocab": vocab, "regions": regions,
                 "cover": cover}, "models/deep.pt")
-    Path("reports/deep_metrics.json").write_text(json.dumps(metrics, indent=2))
-    print(json.dumps(metrics, indent=2))
+    Path("reports/deep_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    print(json.dumps(metrics, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

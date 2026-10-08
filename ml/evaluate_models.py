@@ -42,5 +42,5 @@ if __name__ == "__main__":
         "baseline": score(Predictor("baseline"), d),
         "deep+avg": score(Predictor("deep"), d),
     }
-    open("reports/comparison.json", "w").write(json.dumps(out, indent=2))
+    open("reports/comparison.json", "w", encoding="utf-8").write(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))

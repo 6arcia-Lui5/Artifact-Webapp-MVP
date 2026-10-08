@@ -60,7 +60,7 @@ def health():
     for name in ("baseline", "deep", "flagging", "comparison"):
         f = HERE / "reports" / (f"{name}.json" if name == "comparison" else f"{name}_metrics.json")
         if f.exists():
-            reports[name] = json.loads(f.read_text())
+            reports[name] = json.loads(f.read_text(encoding="utf-8"))
     return {"status": "ok", "active_model": predictors["deep"].model_name,
             "regions": predictors["deep"].regions, "metrics": reports}
 
@@ -95,4 +95,4 @@ def demo_page():
 @app.get("/examples")
 def examples():
     f = HERE / "demo" / "examples.json"
-    return json.loads(f.read_text()) if f.exists() else []
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
