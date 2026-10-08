@@ -36,11 +36,13 @@ removed, and lost text becomes `#`. This matches what a new record will look lik
 Labels:
 - **Date**: the listed not-before / not-after range. Only ranges of 300 years or
   less, between 800 BCE and 1000 CE, are used for training.
-- **Region**: Roman provinces, as EDH records them (Italia, Sicilia, Baetica,
-  Britannia, ...). Italy's regiones and Rome are grouped as Italia. U.S. Epigraphy's
-  modern country names are mapped to provinces (Egypt to Aegyptus, and so on).
-  Israel/Palestine keeps IIP's finer regions (Judaea, Negev, Galilee, ...).
-  Regions with fewer than 60 inscriptions are grouped as "Other".
+- **Region**: about 12 larger areas of the Roman world: Italia, Sicilia, Hispania,
+  Gallia, Germania and Raetia, Britannia, Danube and Balkans, Africa, Greece,
+  Asia Minor and Cyprus, Aegyptus, and Levant. Each record's province (as EDH
+  records it) or modern place name is mapped to its area. Neighbouring provinces
+  use the same formulas, so the text can't reliably tell Baetica from Lusitania,
+  but it can often tell Hispania from Africa, and that is the kind of mismatch
+  worth flagging. Users can type a province or a modern country; both are mapped.
 - **Split**: decided by a hash of the text, so an inscription that appears in two
   corpora always lands in the same split and can't leak into the test set.
 

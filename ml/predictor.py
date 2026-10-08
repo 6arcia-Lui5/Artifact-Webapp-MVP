@@ -15,7 +15,7 @@ import joblib
 import numpy as np
 
 from build_dataset import normalize
-from labels import USEP_REGION
+from labels import USEP_REGION, to_area
 
 HERE = Path(__file__).parent
 REGION_LOW = 0.03
@@ -34,7 +34,8 @@ def norm_region(r):
     if not r:
         return None
     r = r.strip()
-    return USEP_REGION.get(r.lower(), r)
+    # accepts an area, a province ("Baetica") or a modern name ("Spain")
+    return to_area(USEP_REGION.get(r.lower(), r)) or r
 
 
 class Predictor:

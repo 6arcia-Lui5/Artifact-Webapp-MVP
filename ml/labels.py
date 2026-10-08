@@ -6,9 +6,8 @@ SEED = 42
 MAX_SPAN = 300          # only train dates on ranges of 300 years or less
 MIN_REGION_COUNT = 60   # smaller regions are grouped as "Other"
 
-# Regions use Roman province names, as EDH does. Modern names (from USEP
-# or typed by users) are mapped onto them. The regions of Israel/Palestine
-# from IIP (Judaea, Galilee, Negev, ...) are kept as they are.
+# Places are first read as Roman provinces, as EDH records them. Modern
+# names (from USEP or typed by users) are mapped onto provinces here.
 USEP_REGION = {
     "italy": "Italia", "rome": "Italia", "roma": "Italia",
     "sicily": "Sicilia", "sicilia": "Sicilia",
@@ -25,10 +24,52 @@ USEP_REGION = {
 }
 
 
+# Provinces are grouped into larger areas. Neighbouring provinces share
+# the same formulas, so the text can't tell Baetica from Lusitania, but
+# it can often tell Hispania from the Danube or North Africa. A mismatch
+# at this level is also the kind worth flagging.
+AREAS = {
+    "Italia": ["Italia", "Roma", "Tuscia et Umbria", "Sardinia", "Corsica"],
+    "Sicilia": ["Sicilia"],
+    "Hispania": ["Hispania citerior", "Baetica", "Lusitania"],
+    "Gallia": ["Narbonensis", "Lugdunensis", "Aquitania", "Aquitanica", "Belgica",
+               "Alpes Maritimae", "Alpes Cottiae", "Alpes Graiae", "Alpes Poeninae"],
+    "Germania and Raetia": ["Germania inferior", "Germania superior", "Raetia"],
+    "Britannia": ["Britannia"],
+    "Danube and Balkans": ["Noricum", "Pannonia superior", "Pannonia inferior", "Dalmatia",
+                           "Moesia superior", "Moesia inferior", "Dacia", "Thracia"],
+    "Africa": ["Africa Proconsularis", "Numidia", "Mauretania Caesariensis",
+               "Mauretania Tingitana", "Cyrenaica", "Cyrene", "Creta et Cyrenaica"],
+    "Greece": ["Achaia", "Macedonia", "Epirus", "Creta"],
+    "Asia Minor and Cyprus": ["Asia", "Bithynia et Pontus", "Galatia", "Lycia et Pamphylia",
+                              "Cilicia", "Cappadocia", "Pontus", "Cyprus"],
+    "Aegyptus": ["Aegyptus"],
+    "Levant": ["Syria", "Judaea", "Iudaea", "Syria Palaestina", "Arabia", "Mesopotamia",
+               # IIP's regions of Israel/Palestine
+               "Negev", "Coastal Plain", "Galilee", "Samaria", "Golan", "Sinai",
+               "Jordan Valley", "Jordan"],
+}
+_AREA_OF = {p.lower(): a for a, ps in AREAS.items() for p in ps}
+_AREA_OF.update({a.lower(): a for a in AREAS})
+
+
+def to_area(name):
+    """Province, IIP region or area name -> area (None if unknown)."""
+    if not isinstance(name, str) or not name.strip():
+        return None
+    n = name.strip().rstrip("?").strip().lower()
+    if n in _AREA_OF:
+        return _AREA_OF[n]
+    for key, area in _AREA_OF.items():   # e.g. "Alpes Maritimae ..." variants
+        if n.startswith(key):
+            return area
+    return None
+
+
 def edh_region(province):
     """EDH province -> label. Italy's regiones and Rome become 'Italia'."""
-    if not isinstance(province, str) or not province:
-        return None
+    if not isinstance(province, str) or not province or province.startswith("unbekannt"):
+        return None   # "unbekannt" = unknown
     if province == "Roma" or "(Regio" in province:
         return "Italia"
     if province.startswith("Sicilia"):
@@ -40,13 +81,13 @@ def region_of(row):
     if row["corpus"] == "isicily":
         return "Sicilia"
     if row["corpus"] == "edh":
-        return edh_region(row["region"])
+        p = edh_region(row["region"])
+        return to_area(p) or ("Other" if p else None)
     if row["corpus"] == "iip":
-        r = str(row["region"]) if isinstance(row["region"], str) else ""
-        return r if r and r != "Unknown" else None
+        return to_area(row["region"])
     place = str(row["place"]).lower() if isinstance(row["place"], str) else ""
     head = place.split(",")[0].strip()
-    return USEP_REGION.get(head)
+    return to_area(USEP_REGION.get(head))
 
 
 def load(path="data/inscriptions.csv"):
