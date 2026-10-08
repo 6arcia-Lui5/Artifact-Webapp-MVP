@@ -1,0 +1,114 @@
+[
+  {
+    "label": "I.Sicily ISic000898: as listed",
+    "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
+    "not_before": 201,
+    "not_after": 500,
+    "region": "Sicilia"
+  },
+  {
+    "label": "I.Sicily ISic000898: wrong region planted",
+    "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
+    "not_before": 201,
+    "not_after": 500,
+    "region": "Asia Minor and Cyprus"
+  },
+  {
+    "label": "I.Sicily ISic001132: as listed",
+    "text": "δωροθεος λυσ # ανταλλος νυμφ αγορανομησαν αφροδιται γραμματευς απολλοδωρος φαλακρου",
+    "not_before": -275,
+    "not_after": -151,
+    "region": "Sicilia"
+  },
+  {
+    "label": "I.Sicily ISic001132: date moved 300 years",
+    "text": "δωροθεος λυσ # ανταλλος νυμφ αγορανομησαν αφροδιται γραμματευς απολλοδωρος φαλακρου",
+    "not_before": 25,
+    "not_after": 149,
+    "region": "Sicilia"
+  },
+  {
+    "label": "IIP caes0013: as listed",
+    "text": "# probo aug # super omnes retro princ fortiss # assenianus v c praes prov syr pal d n mq e",
+    "not_before": 276,
+    "not_after": 282,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP caes0013: wrong region planted",
+    "text": "# probo aug # super omnes retro princ fortiss # assenianus v c praes prov syr pal d n mq e",
+    "not_before": 276,
+    "not_after": 282,
+    "region": "Britannia"
+  },
+  {
+    "label": "IIP idum0018: as listed",
+    "text": "ב 1 לתמוז שנת 5 עמקוס מן בני בעלרים למסכנתא חס 17 ק 4",
+    "not_before": -354,
+    "not_after": -354,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP idum0018: date moved 300 years",
+    "text": "ב 1 לתמוז שנת 5 עמקוס מן בני בעלרים למסכנתא חס 17 ק 4",
+    "not_before": -54,
+    "not_after": -54,
+    "region": "Levant"
+  },
+  {
+    "label": "US Epigraphy MA.Camb.HU.Sack.G.2003.97: as listed",
+    "text": "υπερ βασιλεως δημητριου και βασιλισσης λαοδικης και των τεκνων αφροδιτη επηκοωι τον βωμον απολλοφανης απολλοφανου ο ιερευς",
+    "not_before": -170,
+    "not_after": -150,
+    "region": "Levant"
+  },
+  {
+    "label": "US Epigraphy MA.Camb.HU.Sack.G.2003.97: wrong region planted",
+    "text": "υπερ βασιλεως δημητριου και βασιλισσης λαοδικης και των τεκνων αφροδιτη επηκοωι τον βωμον απολλοφανης απολλοφανου ο ιερευς",
+    "not_before": -170,
+    "not_after": -150,
+    "region": "Italia"
+  },
+  {
+    "label": "US Epigraphy MA.SH.MHC.AM.L.1910.2.C.F: as listed",
+    "text": "d m ti calidi casti mil coh iiii pr romuli qui milit ann ii f h b m",
+    "not_before": 50,
+    "not_after": 200,
+    "region": "Italia"
+  },
+  {
+    "label": "US Epigraphy MA.SH.MHC.AM.L.1910.2.C.F: date moved 300 years",
+    "text": "d m ti calidi casti mil coh iiii pr romuli qui milit ann ii f h b m",
+    "not_before": 350,
+    "not_after": 500,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000132: as listed",
+    "text": "d m l voconio vero mil coh vi pr cassi mil nn x l percennius picentinus et m lollius secundinus amico optimo fecerunt",
+    "not_before": 101,
+    "not_after": 200,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000132: wrong region planted",
+    "text": "d m l voconio vero mil coh vi pr cassi mil nn x l percennius picentinus et m lollius secundinus amico optimo fecerunt",
+    "not_before": 101,
+    "not_after": 200,
+    "region": "Sicilia"
+  },
+  {
+    "label": "EDH HD000401: as listed",
+    "text": "c mius ty # ius an lxv lucceia laudice marit opt f c",
+    "not_before": 101,
+    "not_after": 200,
+    "region": "Hispania"
+  },
+  {
+    "label": "EDH HD000401: date moved 300 years",
+    "text": "c mius ty # ius an lxv lucceia laudice marit opt f c",
+    "not_before": 401,
+    "not_after": 500,
+    "region": "Hispania"
+  }
+]

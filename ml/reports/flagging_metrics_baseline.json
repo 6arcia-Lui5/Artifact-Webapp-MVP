@@ -1,0 +1,14 @@
+{
+  "model": "baseline",
+  "clean_records": {
+    "date_checked": 5978,
+    "date_false_alarm_rate": 0.0584,
+    "region_checked": 8297,
+    "region_false_alarm_rate": 0.0633
+  },
+  "planted_errors": {
+    "date_shift_years": 300,
+    "date_detection_rate": 0.7655,
+    "region_swap_detection_rate": 0.5902
+  }
+}

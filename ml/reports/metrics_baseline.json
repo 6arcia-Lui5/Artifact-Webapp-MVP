@@ -1,0 +1,134 @@
+{
+  "model": "baseline",
+  "area_prediction": {
+    "n": 8312,
+    "accuracy": 0.5,
+    "macro": {
+      "precision": 0.4482,
+      "recall": 0.4803,
+      "f1": 0.4519
+    },
+    "weighted": {
+      "precision": 0.5431,
+      "recall": 0.5,
+      "f1": 0.5119
+    },
+    "per_area": {
+      "Aegyptus": {
+        "precision": 0.7083,
+        "recall": 0.5862,
+        "f1": 0.6415,
+        "n": 29
+      },
+      "Africa": {
+        "precision": 0.5588,
+        "recall": 0.6218,
+        "f1": 0.5886,
+        "n": 833
+      },
+      "Asia Minor and Cyprus": {
+        "precision": 0.249,
+        "recall": 0.3879,
+        "f1": 0.3033,
+        "n": 165
+      },
+      "Britannia": {
+        "precision": 0.2477,
+        "recall": 0.4087,
+        "f1": 0.3084,
+        "n": 323
+      },
+      "Danube and Balkans": {
+        "precision": 0.6941,
+        "recall": 0.4488,
+        "f1": 0.5451,
+        "n": 2255
+      },
+      "Gallia": {
+        "precision": 0.2753,
+        "recall": 0.3783,
+        "f1": 0.3187,
+        "n": 489
+      },
+      "Germania and Raetia": {
+        "precision": 0.409,
+        "recall": 0.4461,
+        "f1": 0.4268,
+        "n": 872
+      },
+      "Greece": {
+        "precision": 0.1881,
+        "recall": 0.2825,
+        "f1": 0.2259,
+        "n": 269
+      },
+      "Hispania": {
+        "precision": 0.4846,
+        "recall": 0.5259,
+        "f1": 0.5044,
+        "n": 810
+      },
+      "Italia": {
+        "precision": 0.5681,
+        "recall": 0.5227,
+        "f1": 0.5445,
+        "n": 1324
+      },
+      "Levant": {
+        "precision": 0.7848,
+        "recall": 0.7422,
+        "f1": 0.7629,
+        "n": 516
+      },
+      "Other": {
+        "precision": 0.0533,
+        "recall": 0.2667,
+        "f1": 0.0889,
+        "n": 15
+      },
+      "Sicilia": {
+        "precision": 0.6056,
+        "recall": 0.6262,
+        "f1": 0.6158,
+        "n": 412
+      }
+    }
+  },
+  "date_prediction_as_century": {
+    "n": 5986,
+    "accuracy": 0.4601,
+    "macro": {
+      "precision": 0.2747,
+      "recall": 0.1911,
+      "f1": 0.2105
+    },
+    "weighted": {
+      "precision": 0.4601,
+      "recall": 0.4601,
+      "f1": 0.443
+    }
+  },
+  "date_flags": {
+    "n": 11972,
+    "accuracy": 0.8535,
+    "precision": 0.929,
+    "recall": 0.7655,
+    "f1": 0.8393,
+    "true_pos": 4582,
+    "false_pos": 350,
+    "false_neg": 1404,
+    "true_neg": 5636
+  },
+  "area_flags": {
+    "n": 16594,
+    "accuracy": 0.7596,
+    "precision": 0.902,
+    "recall": 0.5825,
+    "f1": 0.7079,
+    "true_pos": 4833,
+    "false_pos": 525,
+    "false_neg": 3464,
+    "true_neg": 7772
+  },
+  "notes": "Flags: each test record checked as listed (label 0) and with a planted error (label 1): date moved 300 years, or a different area."
+}
