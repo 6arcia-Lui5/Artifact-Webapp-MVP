@@ -14,74 +14,88 @@
     "region": "Germania and Raetia"
   },
   {
-    "label": "I.Sicily ISic001161: as listed",
-    "text": "# φολοινια # αιου κα # φολοινι # ματηρ #",
-    "not_before": 101,
-    "not_after": 200,
-    "region": "Sicilia"
-  },
-  {
-    "label": "I.Sicily ISic001161: date moved 300 years",
-    "text": "# φολοινια # αιου κα # φολοινι # ματηρ #",
-    "not_before": 401,
+    "label": "I.Sicily ISic000898: as listed",
+    "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
+    "not_before": 201,
     "not_after": 500,
     "region": "Sicilia"
   },
   {
-    "label": "IIP beth0227: as listed",
-    "text": "זה משכבו של יודן בן לוי לוי לעולם בשלום יהי שוי שוי משכבו בשלום של יודן בן לוי",
+    "label": "I.Sicily ISic000898: date moved 300 years",
+    "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
+    "not_before": -99,
+    "not_after": 200,
+    "region": "Sicilia"
+  },
+  {
+    "label": "IIP bani0006: as listed",
+    "text": "l nonium m didum pra # trib coh ∞ t # ɔ coh s s patr",
+    "not_before": 97,
+    "not_after": 120,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP bani0006: wrong region planted",
+    "text": "l nonium m didum pra # trib coh ∞ t # ɔ coh s s patr",
+    "not_before": 97,
+    "not_after": 120,
+    "region": "Africa"
+  },
+  {
+    "label": "IIP beth0185: as listed",
+    "text": "κυριε μνησθηθι της δουλης σου πρειμοσας κυριε μνησθηθι του δουλου σου σακερδωτος",
     "not_before": 200,
     "not_after": 400,
     "region": "Levant"
   },
   {
-    "label": "IIP beth0227: wrong region planted",
-    "text": "זה משכבו של יודן בן לוי לוי לעולם בשלום יהי שוי שוי משכבו בשלום של יודן בן לוי",
-    "not_before": 200,
-    "not_after": 400,
-    "region": "Asia Minor and Cyprus"
-  },
-  {
-    "label": "IIP beth0250: as listed",
-    "text": "זו ארונו של רבי הליל בנו של רבי לווי שעשה את המערה הזו",
-    "not_before": 200,
-    "not_after": 400,
-    "region": "Levant"
-  },
-  {
-    "label": "IIP beth0250: date moved 300 years",
-    "text": "זו ארונו של רבי הליל בנו של רבי לווי שעשה את המערה הזו",
+    "label": "IIP beth0185: date moved 300 years",
+    "text": "κυριε μνησθηθι της δουλης σου πρειμοσας κυριε μνησθηθι του δουλου σου σακερδωτος",
     "not_before": -100,
     "not_after": 100,
     "region": "Levant"
   },
   {
-    "label": "US Epigraphy CA.Malibu.JPGM.L.83.AA.209: as listed",
-    "text": "dis manibus l caltili stephani caltiliae moschidis",
-    "not_before": 100,
-    "not_after": 125,
-    "region": "Italia"
-  },
-  {
-    "label": "US Epigraphy CA.Malibu.JPGM.L.83.AA.209: wrong region planted",
-    "text": "dis manibus l caltili stephani caltiliae moschidis",
-    "not_before": 100,
-    "not_after": 125,
-    "region": "Asia Minor and Cyprus"
-  },
-  {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.320AandB: as listed",
-    "text": "d m syntice f satyro coiugi suo b m",
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.340 A-C: as listed",
+    "text": "heliopoli petroniae laetus filius et contubernalis fecerunt",
     "not_before": 1,
     "not_after": 200,
     "region": "Italia"
   },
   {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.320AandB: date moved 300 years",
-    "text": "d m syntice f satyro coiugi suo b m",
-    "not_before": 301,
-    "not_after": 500,
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.340 A-C: wrong region planted",
+    "text": "heliopoli petroniae laetus filius et contubernalis fecerunt",
+    "not_before": 1,
+    "not_after": 200,
+    "region": "Greece"
+  },
+  {
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.416: as listed",
+    "text": "licinia l anatole licinia l primigenia",
+    "not_before": 1,
+    "not_after": 50,
     "region": "Italia"
+  },
+  {
+    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.416: date moved 300 years",
+    "text": "licinia l anatole licinia l primigenia",
+    "not_before": 301,
+    "not_after": 350,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000004: as listed",
+    "text": "# avs # lla m porci nigri ser dominae veneri aram posuit",
+    "not_before": 151,
+    "not_after": 200,
+    "region": "Hispania"
+  },
+  {
+    "label": "EDH HD000004: wrong region planted",
+    "text": "# avs # lla m porci nigri ser dominae veneri aram posuit",
+    "not_before": 151,
+    "not_after": 200,
+    "region": "Britannia"
   },
   {
     "label": "EDH HD000022: as listed",
@@ -91,24 +105,10 @@
     "region": "Italia"
   },
   {
-    "label": "EDH HD000022: wrong region planted",
+    "label": "EDH HD000022: date moved 300 years",
     "text": "v p helvacius c p l abies nonia t f secund p helvacius p et noniaes l felicio in fr p xvi in ag p xvi",
-    "not_before": -30,
-    "not_after": -1,
-    "region": "Britannia"
-  },
-  {
-    "label": "EDH HD000408: as listed",
-    "text": "imp t aelio antonino caes aug templ miner aug sac apisa minus ex arca publlica fecerunt sufetes macer et baliato",
-    "not_before": 138,
-    "not_after": 161,
-    "region": "Africa"
-  },
-  {
-    "label": "EDH HD000408: date moved 300 years",
-    "text": "imp t aelio antonino caes aug templ miner aug sac apisa minus ex arca publlica fecerunt sufetes macer et baliato",
-    "not_before": 438,
-    "not_after": 461,
-    "region": "Africa"
+    "not_before": 270,
+    "not_after": 299,
+    "region": "Italia"
   }
 ]

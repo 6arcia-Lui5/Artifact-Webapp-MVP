@@ -1,18 +1,18 @@
 {
   "model": "TF-IDF char n-grams + linear models",
   "region": {
-    "n_test": 8312,
-    "accuracy": 0.5,
-    "top3_accuracy": 0.7706,
-    "macro_f1": 0.4519
+    "n_test": 11285,
+    "accuracy": 0.5084,
+    "top3_accuracy": 0.7637,
+    "macro_f1": 0.4411
   },
   "date": {
-    "n_test": 5986,
-    "mae_years": 68.2,
-    "median_ae_years": 45.9,
-    "within_50_years": 0.5354,
-    "interval_half_width_80": 100.7,
-    "interval_coverage_test": 0.8881,
-    "predict_mean_baseline_mae": 98.6
+    "n_test": 8948,
+    "mae_years": 68.4,
+    "median_ae_years": 48.5,
+    "within_50_years": 0.5114,
+    "interval_half_width_80": 102.3,
+    "interval_coverage_test": 0.8948,
+    "predict_mean_baseline_mae": 97.4
   }
 }

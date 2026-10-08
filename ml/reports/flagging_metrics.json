@@ -1,14 +1,14 @@
 {
   "model": "deep (region averaged with baseline)",
   "clean_records": {
-    "date_checked": 5978,
-    "date_false_alarm_rate": 0.057,
-    "region_checked": 8297,
-    "region_false_alarm_rate": 0.0393
+    "date_checked": 8940,
+    "date_false_alarm_rate": 0.0463,
+    "region_checked": 11270,
+    "region_false_alarm_rate": 0.0374
   },
   "planted_errors": {
     "date_shift_years": 300,
-    "date_detection_rate": 0.8489,
-    "region_swap_detection_rate": 0.5727
+    "date_detection_rate": 0.8318,
+    "region_swap_detection_rate": 0.5862
   }
 }

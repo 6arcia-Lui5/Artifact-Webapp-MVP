@@ -1,25 +1,25 @@
 {
-  "n_train": 67253,
-  "n_test_region": 8312,
-  "n_test_date": 5986,
-  "guess_most_common_region": 0.2713,
-  "guess_average_date_mae": 98.6,
+  "n_train": 92470,
+  "n_test_region": 11285,
+  "n_test_date": 8948,
+  "guess_most_common_region": 0.2432,
+  "guess_average_date_mae": 97.4,
   "baseline": {
-    "region_accuracy": 0.5,
-    "region_top3": 0.7706,
-    "date_mae_years": 68.2,
-    "date_median_error_years": 45.8,
-    "date_within_50_years": 0.5358,
-    "interval_coverage": 0.8889,
-    "interval_median_width_years": 201.0
+    "region_accuracy": 0.5084,
+    "region_top3": 0.7637,
+    "date_mae_years": 68.4,
+    "date_median_error_years": 48.5,
+    "date_within_50_years": 0.5121,
+    "interval_coverage": 0.8957,
+    "interval_median_width_years": 205.0
   },
   "deep+avg": {
-    "region_accuracy": 0.554,
-    "region_top3": 0.8061,
-    "date_mae_years": 60.9,
-    "date_median_error_years": 36.5,
-    "date_within_50_years": 0.6158,
-    "interval_coverage": 0.8672,
+    "region_accuracy": 0.5743,
+    "region_top3": 0.8111,
+    "date_mae_years": 61.5,
+    "date_median_error_years": 38.5,
+    "date_within_50_years": 0.5881,
+    "interval_coverage": 0.8748,
     "interval_median_width_years": 125.0
   }
 }

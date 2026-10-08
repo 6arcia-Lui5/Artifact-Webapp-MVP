@@ -1,17 +1,17 @@
 {
   "model": "char CNN + BiGRU, multi-task (region + date bins)",
   "region": {
-    "n_test": 8312,
-    "accuracy": 0.5319,
-    "top3_accuracy": 0.7909,
-    "macro_f1": 0.4625
+    "n_test": 11285,
+    "accuracy": 0.5636,
+    "top3_accuracy": 0.8024,
+    "macro_f1": 0.4786
   },
   "date": {
-    "n_test": 5986,
-    "mae_years": 60.9,
-    "median_ae_years": 36.5,
-    "within_50_years": 0.6153,
+    "n_test": 8948,
+    "mae_years": 61.5,
+    "median_ae_years": 38.4,
+    "within_50_years": 0.5877,
     "interval_mass": 0.5,
-    "interval_coverage_test": 0.8672
+    "interval_coverage_test": 0.8748
   }
 }
