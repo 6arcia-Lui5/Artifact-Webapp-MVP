@@ -82,18 +82,28 @@ def trim(xb):
     return xb[:, :n]
 
 
+def pick_device(name="auto"):
+    """GPU if available (NVIDIA CUDA or AMD ROCm both show up as 'cuda'), else CPU."""
+    if name == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(name)
+
+
 def predict(model, X, bs=256):
     model.eval()
+    dev = next(model.parameters()).device
     rp, dp = [], []
     with torch.no_grad():
         for i in range(0, len(X), bs):
-            r, dd = model(trim(torch.from_numpy(X[i:i + bs])))
-            rp.append(F.softmax(r, -1).numpy())
-            dp.append(F.softmax(dd, -1).numpy())
+            r, dd = model(trim(torch.from_numpy(X[i:i + bs])).to(dev))
+            rp.append(F.softmax(r, -1).cpu().numpy())
+            dp.append(F.softmax(dd, -1).cpu().numpy())
     return np.concatenate(rp), np.concatenate(dp)
 
 
-def main(epochs=24):
+def main(epochs=24, device="auto", batch_size=64):
+    dev = pick_device(device)
+    print(f"training on {dev}" + (f" ({torch.cuda.get_device_name(0)})" if dev.type == "cuda" else ""), flush=True)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     torch.set_num_threads(max(1, torch.get_num_threads()))
@@ -125,9 +135,10 @@ def main(epochs=24):
     va_idx = np.where(d.split == "val")[0]
     te_idx = np.where(d.split == "test")[0]
 
-    model = InscriptionNet(len(vocab) + 2, len(regions))
+    model = InscriptionNet(len(vocab) + 2, len(regions)).to(dev)
+    w = w.to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=2e-3, weight_decay=1e-4)
-    steps = epochs * math.ceil(len(tr_idx) / 64)
+    steps = epochs * math.ceil(len(tr_idx) / batch_size)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=2e-3, total_steps=steps)
 
     best, best_state = -1e9, None
@@ -138,24 +149,24 @@ def main(epochs=24):
         tot = 0.0
         # group similar lengths into the same batch, then shuffle batches
         batches = []
-        for c in range(0, len(tr_idx), 64 * 32):
-            chunk = tr_idx[c:c + 64 * 32]
+        for c in range(0, len(tr_idx), batch_size * 32):
+            chunk = tr_idx[c:c + batch_size * 32]
             chunk = chunk[np.argsort(lengths[chunk])]
-            batches += [chunk[i:i + 64] for i in range(0, len(chunk), 64)]
+            batches += [chunk[i:i + batch_size] for i in range(0, len(chunk), batch_size)]
         np.random.shuffle(batches)
         for b in batches:
             xb = trim(torch.from_numpy(X[b]))
             # light augmentation: randomly mask characters as if damaged
             m = (torch.rand(xb.shape) < 0.05) & (xb > 1)
-            xb = xb.masked_fill(m, vocab.get("#", 1))
+            xb = xb.masked_fill(m, vocab.get("#", 1)).to(dev)
             r_out, d_out = model(xb)
-            yrb = torch.from_numpy(yr[b])
+            yrb = torch.from_numpy(yr[b]).to(dev)
             loss_r = F.cross_entropy(r_out, yrb, weight=w, ignore_index=-100) if (yrb >= 0).any() else 0.0
-            hb = torch.from_numpy(has_d[b])
+            hb = torch.from_numpy(has_d[b]).to(dev)
             loss_d = 0.0
             if hb.any():
                 logp = F.log_softmax(d_out[hb], -1)
-                loss_d = -(torch.from_numpy(yd[b])[hb] * logp).sum(-1).mean()
+                loss_d = -(torch.from_numpy(yd[b]).to(dev)[hb] * logp).sum(-1).mean()
             loss = loss_r + loss_d
             opt.zero_grad()
             loss.backward()
@@ -228,6 +239,7 @@ def main(epochs=24):
             "interval_coverage_test": round(float(coverage), 4),
         },
     }
+    model = model.cpu()
     torch.save({"state": model.state_dict(), "vocab": vocab, "regions": regions,
                 "cover": cover}, "models/deep.pt")
     Path("reports/deep_metrics.json").write_text(json.dumps(metrics, indent=2))
@@ -235,4 +247,10 @@ def main(epochs=24):
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--epochs", type=int, default=24)
+    ap.add_argument("--device", default="auto", help="auto, cuda or cpu")
+    ap.add_argument("--batch-size", type=int, default=64)
+    a = ap.parse_args()
+    main(a.epochs, a.device, a.batch_size)

@@ -49,7 +49,7 @@ class Predictor:
         if model == "deep" and (HERE / "models" / "deep.pt").exists():
             import torch
             from train_deep import InscriptionNet, encode, date_summary
-            ck = torch.load(HERE / "models" / "deep.pt", weights_only=False)
+            ck = torch.load(HERE / "models" / "deep.pt", weights_only=False, map_location="cpu")
             net = InscriptionNet(len(ck["vocab"]) + 2, len(ck["regions"]))
             net.load_state_dict(ck["state"])
             net.eval()
