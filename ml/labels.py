@@ -32,7 +32,8 @@ AREAS = {
     "Italia": ["Italia", "Roma", "Tuscia et Umbria", "Sardinia", "Corsica"],
     "Sicilia": ["Sicilia"],
     "Hispania": ["Hispania citerior", "Baetica", "Lusitania"],
-    "Gallia": ["Narbonensis", "Lugdunensis", "Aquitania", "Aquitanica", "Belgica",
+    "Gallia": ["Narbonensis", "Gallia Narbonensis", "Lugdunensis", "Lugudunensis",
+               "Aquitania", "Aquitanica", "Aquitani(c)a", "Belgica",
                "Alpes Maritimae", "Alpes Cottiae", "Alpes Graiae", "Alpes Poeninae"],
     "Germania and Raetia": ["Germania inferior", "Germania superior", "Raetia"],
     "Britannia": ["Britannia"],
@@ -41,10 +42,10 @@ AREAS = {
     "Africa": ["Africa Proconsularis", "Numidia", "Mauretania Caesariensis",
                "Mauretania Tingitana", "Cyrenaica", "Cyrene", "Creta et Cyrenaica"],
     "Greece": ["Achaia", "Macedonia", "Epirus", "Creta"],
-    "Asia Minor and Cyprus": ["Asia", "Bithynia et Pontus", "Galatia", "Lycia et Pamphylia",
+    "Asia Minor and Cyprus": ["Asia", "Bithynia et Pontus", "Pontus et Bithynia", "Galatia", "Lycia et Pamphylia",
                               "Cilicia", "Cappadocia", "Pontus", "Cyprus"],
     "Aegyptus": ["Aegyptus"],
-    "Levant": ["Syria", "Judaea", "Iudaea", "Syria Palaestina", "Arabia", "Mesopotamia",
+    "Levant": ["Syria", "Judaea", "Iudaea", "Syria Palaestina", "Palaestina", "Arabia", "Mesopotamia",
                # IIP's regions of Israel/Palestine
                "Negev", "Coastal Plain", "Galilee", "Samaria", "Golan", "Sinai",
                "Jordan Valley", "Jordan"],
@@ -70,7 +71,7 @@ def edh_region(province):
     """EDH province -> label. Italy's regiones and Rome become 'Italia'."""
     if not isinstance(province, str) or not province or province.startswith("unbekannt"):
         return None   # "unbekannt" = unknown
-    if province == "Roma" or "(Regio" in province:
+    if province == "Roma" or "Regio" in province:   # EDH "(Regio I)", EDCS "/ Regio I"
         return "Italia"
     if province.startswith("Sicilia"):
         return "Sicilia"
@@ -80,7 +81,7 @@ def edh_region(province):
 def region_of(row):
     if row["corpus"] == "isicily":
         return "Sicilia"
-    if row["corpus"] == "edh":
+    if row["corpus"] in ("edh", "lire"):
         p = edh_region(row["region"])
         return to_area(p) or ("Other" if p else None)
     if row["corpus"] == "iip":

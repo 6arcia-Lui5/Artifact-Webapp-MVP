@@ -119,6 +119,10 @@ cd ../ml
 # optional: EDH (about 81,000 Latin inscriptions). Download all eight
 # edhEpidocDump_*.zip files from https://zenodo.org/records/3575155 and
 # unzip them into ../data/EDH. build_dataset.py picks them up if present.
+# optional: LIRE v3.0 (EDH + EDCS). Download LIRE_v3-0.parquet from
+# https://zenodo.org/records/8431452 into ../data/LIRE and pip install pyarrow.
+# Only its EDCS-only records are used, capped at 15,000 per area
+# (--lire-max-per-area), because Rome alone is about half of EDCS.
 
 # 2. build data and train (about 10 minutes on a laptop CPU)
 python build_dataset.py --data-dir ../data

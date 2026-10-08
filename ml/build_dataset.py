@@ -6,6 +6,9 @@ Sources (all public on GitHub):
   - IIP           https://github.com/Brown-University-Library/iip-texts
   - US Epigraphy  https://github.com/Brown-University-Library/usep-data
   - EDH (optional) https://zenodo.org/records/3575155  (unzip all parts into data/EDH)
+  - LIRE (optional) https://zenodo.org/records/8431452  (put the .parquet in data/LIRE)
+    Only LIRE's EDCS-only records are used, since its EDH records are
+    already covered above. Needs: pip install pyarrow
 
 Each inscription becomes one row with:
   id, corpus, language, text, not_before, not_after, region, place,
@@ -197,10 +200,60 @@ def parse_file(path, corpus):
     }
 
 
+def leiden_to_stone(text):
+    """EDCS text in Leiden style -> text as on the stone (same rules as EpiDoc)."""
+    if not isinstance(text, str):
+        return ""
+    t = re.sub(r"\([^)]*\)", "", text)            # (expansions)
+    t = re.sub(r"\[\[([^\]]*)\]\]", r"\1", t)     # [[erased but legible]]
+    t = re.sub(r"\[[^\]]*\]", " # ", t)            # [restored] -> gap
+    t = t.replace("/", " ")
+    return normalize(t)
+
+
+def load_lire(folder, max_per_area, seed=42):
+    """EDCS-only records from the LIRE dataset (Parquet)."""
+    import pandas as pd
+    from labels import edh_region, to_area
+    files = sorted(folder.glob("*.parquet"))
+    if not files:
+        print(f"lire: no .parquet file in {folder}, skipped")
+        return []
+    cols = ["EDCS-ID", "EDH-ID", "inscription", "province", "place",
+            "not_before", "not_after", "language_EDCS", "material_clean",
+            "type_of_monument_clean"]
+    d = pd.read_parquet(files[-1], columns=cols)
+    d = d[d["EDH-ID"].isna() & d["inscription"].notna()].copy()
+    d["text"] = d["inscription"].map(leiden_to_stone)
+    d = d[d["text"].str.replace(r"[#\s]", "", regex=True).str.len() >= 5]
+    d["area"] = d["province"].map(edh_region).map(to_area)
+    # Rome alone is about half of EDCS; cap each area so it doesn't swamp the rest
+    d = (d.sample(frac=1, random_state=seed)
+          .groupby(d["area"].fillna("?"), group_keys=False)
+          .head(max_per_area))
+    rows = []
+    for _, r in d.iterrows():
+        nb = None if pd.isna(r["not_before"]) else int(r["not_before"])
+        na = None if pd.isna(r["not_after"]) else int(r["not_after"])
+        lang = r["language_EDCS"] if isinstance(r["language_EDCS"], str) else ""
+        rows.append({
+            "id": f"lire:{r['EDCS-ID']}", "corpus": "lire",
+            "language": "grc" if "greek" in lang.lower() or re.search("[\u0370-\u03ff]", r["text"]) else "lat",
+            "text": r["text"], "not_before": nb, "not_after": na,
+            "region": r["province"] if isinstance(r["province"], str) else "",
+            "place": r["place"] if isinstance(r["place"], str) else "",
+            "material": r["material_clean"] if isinstance(r["material_clean"], str) else "",
+            "object_type": r["type_of_monument_clean"] if isinstance(r["type_of_monument_clean"], str) else "",
+        })
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-dir", default="../data")
     ap.add_argument("--out", default="data/inscriptions.csv")
+    ap.add_argument("--lire-max-per-area", type=int, default=15000,
+                    help="cap on LIRE records per area (Rome is about half of EDCS)")
     a = ap.parse_args()
     base = Path(a.data_dir)
     sources = [
@@ -223,6 +276,13 @@ def main():
                 rows.append(r)
                 n += 1
         print(f"{corpus}: {n} inscriptions")
+    lire_dir = base / "LIRE"
+    if lire_dir.exists():
+        lire = load_lire(lire_dir, a.lire_max_per_area)
+        rows += lire
+        print(f"lire (EDCS-only): {len(lire)} inscriptions")
+    else:
+        print(f"lire: folder not found, skipped ({lire_dir})")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
