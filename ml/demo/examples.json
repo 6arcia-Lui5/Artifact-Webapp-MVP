@@ -1,19 +1,5 @@
 [
   {
-    "label": "I.Sicily ISic000015: as listed",
-    "text": "m aurelio antonino caes imp l septimi se veri pii arabici adi abenici p p aug filio res p panhor d d",
-    "not_before": 196,
-    "not_after": 197,
-    "region": "Sicilia"
-  },
-  {
-    "label": "I.Sicily ISic000015: wrong region planted",
-    "text": "m aurelio antonino caes imp l septimi se veri pii arabici adi abenici p p aug filio res p panhor d d",
-    "not_before": 196,
-    "not_after": 197,
-    "region": "Germania and Raetia"
-  },
-  {
     "label": "I.Sicily ISic000898: as listed",
     "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
     "not_before": 201,
@@ -21,94 +7,108 @@
     "region": "Sicilia"
   },
   {
-    "label": "I.Sicily ISic000898: date moved 300 years",
+    "label": "I.Sicily ISic000898: wrong region planted",
     "text": "αχιλλεους ενθα δε κιτε ζησας βειον αμεμπτον τελευτα τη προ τεσσαρων ειδων φεβρουαρι ων α ☧ ω",
-    "not_before": -99,
+    "not_before": 201,
+    "not_after": 500,
+    "region": "Asia Minor and Cyprus"
+  },
+  {
+    "label": "I.Sicily ISic001132: as listed",
+    "text": "δωροθεος λυσ # ανταλλος νυμφ αγορανομησαν αφροδιται γραμματευς απολλοδωρος φαλακρου",
+    "not_before": -275,
+    "not_after": -151,
+    "region": "Sicilia"
+  },
+  {
+    "label": "I.Sicily ISic001132: date moved 300 years",
+    "text": "δωροθεος λυσ # ανταλλος νυμφ αγορανομησαν αφροδιται γραμματευς απολλοδωρος φαλακρου",
+    "not_before": 25,
+    "not_after": 149,
+    "region": "Sicilia"
+  },
+  {
+    "label": "IIP caes0013: as listed",
+    "text": "# probo aug # super omnes retro princ fortiss # assenianus v c praes prov syr pal d n mq e",
+    "not_before": 276,
+    "not_after": 282,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP caes0013: wrong region planted",
+    "text": "# probo aug # super omnes retro princ fortiss # assenianus v c praes prov syr pal d n mq e",
+    "not_before": 276,
+    "not_after": 282,
+    "region": "Britannia"
+  },
+  {
+    "label": "IIP idum0018: as listed",
+    "text": "ב 1 לתמוז שנת 5 עמקוס מן בני בעלרים למסכנתא חס 17 ק 4",
+    "not_before": -354,
+    "not_after": -354,
+    "region": "Levant"
+  },
+  {
+    "label": "IIP idum0018: date moved 300 years",
+    "text": "ב 1 לתמוז שנת 5 עמקוס מן בני בעלרים למסכנתא חס 17 ק 4",
+    "not_before": -54,
+    "not_after": -54,
+    "region": "Levant"
+  },
+  {
+    "label": "US Epigraphy MA.Camb.HU.Sack.G.2003.97: as listed",
+    "text": "υπερ βασιλεως δημητριου και βασιλισσης λαοδικης και των τεκνων αφροδιτη επηκοωι τον βωμον απολλοφανης απολλοφανου ο ιερευς",
+    "not_before": -170,
+    "not_after": -150,
+    "region": "Levant"
+  },
+  {
+    "label": "US Epigraphy MA.Camb.HU.Sack.G.2003.97: wrong region planted",
+    "text": "υπερ βασιλεως δημητριου και βασιλισσης λαοδικης και των τεκνων αφροδιτη επηκοωι τον βωμον απολλοφανης απολλοφανου ο ιερευς",
+    "not_before": -170,
+    "not_after": -150,
+    "region": "Italia"
+  },
+  {
+    "label": "US Epigraphy MA.SH.MHC.AM.L.1910.2.C.F: as listed",
+    "text": "d m ti calidi casti mil coh iiii pr romuli qui milit ann ii f h b m",
+    "not_before": 50,
+    "not_after": 200,
+    "region": "Italia"
+  },
+  {
+    "label": "US Epigraphy MA.SH.MHC.AM.L.1910.2.C.F: date moved 300 years",
+    "text": "d m ti calidi casti mil coh iiii pr romuli qui milit ann ii f h b m",
+    "not_before": 350,
+    "not_after": 500,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000132: as listed",
+    "text": "d m l voconio vero mil coh vi pr cassi mil nn x l percennius picentinus et m lollius secundinus amico optimo fecerunt",
+    "not_before": 101,
+    "not_after": 200,
+    "region": "Italia"
+  },
+  {
+    "label": "EDH HD000132: wrong region planted",
+    "text": "d m l voconio vero mil coh vi pr cassi mil nn x l percennius picentinus et m lollius secundinus amico optimo fecerunt",
+    "not_before": 101,
     "not_after": 200,
     "region": "Sicilia"
   },
   {
-    "label": "IIP bani0006: as listed",
-    "text": "l nonium m didum pra # trib coh ∞ t # ɔ coh s s patr",
-    "not_before": 97,
-    "not_after": 120,
-    "region": "Levant"
-  },
-  {
-    "label": "IIP bani0006: wrong region planted",
-    "text": "l nonium m didum pra # trib coh ∞ t # ɔ coh s s patr",
-    "not_before": 97,
-    "not_after": 120,
-    "region": "Africa"
-  },
-  {
-    "label": "IIP beth0185: as listed",
-    "text": "κυριε μνησθηθι της δουλης σου πρειμοσας κυριε μνησθηθι του δουλου σου σακερδωτος",
-    "not_before": 200,
-    "not_after": 400,
-    "region": "Levant"
-  },
-  {
-    "label": "IIP beth0185: date moved 300 years",
-    "text": "κυριε μνησθηθι της δουλης σου πρειμοσας κυριε μνησθηθι του δουλου σου σακερδωτος",
-    "not_before": -100,
-    "not_after": 100,
-    "region": "Levant"
-  },
-  {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.340 A-C: as listed",
-    "text": "heliopoli petroniae laetus filius et contubernalis fecerunt",
-    "not_before": 1,
-    "not_after": 200,
-    "region": "Italia"
-  },
-  {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.340 A-C: wrong region planted",
-    "text": "heliopoli petroniae laetus filius et contubernalis fecerunt",
-    "not_before": 1,
-    "not_after": 200,
-    "region": "Greece"
-  },
-  {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.416: as listed",
-    "text": "licinia l anatole licinia l primigenia",
-    "not_before": 1,
-    "not_after": 50,
-    "region": "Italia"
-  },
-  {
-    "label": "US Epigraphy KY.Lou.SAM.L.1929.17.416: date moved 300 years",
-    "text": "licinia l anatole licinia l primigenia",
-    "not_before": 301,
-    "not_after": 350,
-    "region": "Italia"
-  },
-  {
-    "label": "EDH HD000004: as listed",
-    "text": "# avs # lla m porci nigri ser dominae veneri aram posuit",
-    "not_before": 151,
+    "label": "EDH HD000401: as listed",
+    "text": "c mius ty # ius an lxv lucceia laudice marit opt f c",
+    "not_before": 101,
     "not_after": 200,
     "region": "Hispania"
   },
   {
-    "label": "EDH HD000004: wrong region planted",
-    "text": "# avs # lla m porci nigri ser dominae veneri aram posuit",
-    "not_before": 151,
-    "not_after": 200,
-    "region": "Britannia"
-  },
-  {
-    "label": "EDH HD000022: as listed",
-    "text": "v p helvacius c p l abies nonia t f secund p helvacius p et noniaes l felicio in fr p xvi in ag p xvi",
-    "not_before": -30,
-    "not_after": -1,
-    "region": "Italia"
-  },
-  {
-    "label": "EDH HD000022: date moved 300 years",
-    "text": "v p helvacius c p l abies nonia t f secund p helvacius p et noniaes l felicio in fr p xvi in ag p xvi",
-    "not_before": 270,
-    "not_after": 299,
-    "region": "Italia"
+    "label": "EDH HD000401: date moved 300 years",
+    "text": "c mius ty # ius an lxv lucceia laudice marit opt f c",
+    "not_before": 401,
+    "not_after": 500,
+    "region": "Hispania"
   }
 ]
