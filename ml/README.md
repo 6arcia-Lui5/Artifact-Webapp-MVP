@@ -46,8 +46,7 @@ Labels:
 - **Split**: decided by a hash of the text, so an inscription that appears in two
   corpora always lands in the same split and can't leak into the test set.
 
-Note: the trained models in `models/` were made before EDH was added and use the
-older, broader region names. Retrain to get the province-level models.
+
 
 ## How it works
 
@@ -75,29 +74,35 @@ older, broader region names. Retrain to get the province-level models.
 
 ## Results
 
-Held-out test set (10% of records, never used in training). Exact numbers are in
-`reports/comparison.json` and `reports/flagging_metrics*.json`.
+Held-out test set: inscriptions never used in training (10% of the data,
+about 8,300 with a region and 6,000 with a usable date). Trained on about
+67,000 inscriptions from I.Sicily, IIP, U.S. Epigraphy and EDH. Exact numbers
+are in `reports/comparison.json` and `reports/flagging_metrics*.json`.
 
 | | Simple guess | Baseline | Deep model |
 |---|---|---|---|
-| Region correct | 38% (always "Sicily") | 65% | **67%** |
-| Region in top 3 | | 89% | **90%** |
-| Date error, median | | 86 years | **49 years** |
-| Date error, mean | 243 years (always the average) | 126 years | **104 years** |
-| Date within 50 years | | 34% | **51%** |
-| 80% date interval, median width | | 427 years | **125 years** |
+| Area correct (of about 12) | 27% (always the most common) | 50% | **55%** |
+| Area in top 3 | | 77% | **81%** |
+| Date error, median | | 46 years | **37 years** |
+| Date error, mean | 99 years (always the average) | 68 years | **61 years** |
+| Date within 50 years | | 54% | **62%** |
+| 80% date range, median width | | 201 years | **125 years** |
 
-Flags, tested by planting errors into held-out records:
+The deep model's date ranges are about 40% narrower than the baseline's while
+still covering the true date 87% of the time.
 
-| | Baseline | Deep model |
-|---|---|---|
-| Dates moved 300 years that get flagged | 27% | **72%** |
-| Wrong regions that get flagged | 71% | **78%** |
-| Correct records wrongly flagged (date) | 9% | 12% |
-| Correct records wrongly flagged (region) | 4% | 5% |
+Flags, tested by planting errors into held-out records (deep model):
 
-The deep model's date intervals are about three times narrower at the same
-coverage, which is why it catches far more date errors.
+| | Rate |
+|---|---|
+| Dates moved 300 years that get flagged | **85%** |
+| Wrong areas that get flagged | **57%** |
+| Correct records wrongly flagged (date) | 6% |
+| Correct records wrongly flagged (area) | 4% |
+
+Wrong areas are harder to catch than wrong dates, because neighbouring areas in
+the Latin west (Italia, Gallia, Hispania) share most of their formulas. A swap
+between distant areas, such as Britannia and the Levant, is caught far more often.
 
 ## Run it
 
