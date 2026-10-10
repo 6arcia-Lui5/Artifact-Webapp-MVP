@@ -18,7 +18,13 @@ async function fillAccount(page, account) {
   }
   await expect(page.locator('input[name="identifier"]')).toHaveValue(account.email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.locator('input[name="password"]').waitFor({ state: "visible" });
+  const password = page.locator('input[name="password"]');
+  const passwordMethod = page.getByRole("button", { name: "Sign in with your password", exact: true });
+  await expect.poll(async () =>
+    (await passwordMethod.isVisible()) || await password.isEditable({ timeout: 250 }).catch(() => false),
+    { timeout: 15000 }).toBe(true);
+  if (await passwordMethod.isVisible()) await passwordMethod.click();
+  await expect(password).toBeEditable({ timeout: 15000 });
 }
 
 async function login(page, account) {
@@ -53,7 +59,9 @@ test("odd paths still require login or return API 401", async ({ page, request }
 test("API denies anonymous reads and writes with JSON 401", async ({ request }) => {
   for (const [method, path] of [
     ["get", "/access"], ["get", "/records"], ["get", "/records/example"],
-    ["get", "/records/my"], ["get", "/collections"], ["get", "/collections/example"],
+    ["get", "/records/my"], ["get", "/records/search?query=test"],
+    ["get", "/object-types"], ["post", "/object-types"], ["post", "/records/import"],
+    ["get", "/collections"], ["get", "/collections/example"],
     ["post", "/records"], ["put", "/records/example"],
     ["delete", "/records/example"], ["post", "/collections"], ["post", "/users/sync"],
   ]) {
@@ -75,7 +83,8 @@ test("login is responsive and signup follows environment policy", async ({ page 
     await expect(page.getByRole("heading", { name: "Welcome back to the collection." })).toBeVisible();
   } else {
     await expect(page.getByRole("heading", { name: "Every artifact has a story. Share yours." })).toBeVisible();
-    await expect(page.locator('input[name="emailAddress"]')).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create your account", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   }
 });
 
@@ -97,9 +106,50 @@ test("hosted approved account reads the Neon catalog", async ({ page }) => {
   await login(page, accounts[0]);
   const response = await responsePromise;
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual([]);
-  await expect(page.getByRole("heading", { name: "No artifact records available" })).toBeVisible();
+  const records = await response.json();
+  expect(Array.isArray(records)).toBe(true);
+  if (records.length) {
+    await expect(page.getByRole("heading", { name: records[0].itemName, exact: false }).first()).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: "No artifact records available" })).toBeVisible();
+  }
 });
+test("search, record details and object types work with an approved account", async ({ page }) => {
+  await page.goto("/");
+  const catalogPromise = page.waitForResponse(response =>
+    response.url() === apiUrl + "/records" && response.request().method() === "GET");
+  await login(page, accounts[0]);
+  const catalog = await catalogPromise;
+  expect(catalog.status()).toBe(200);
+  const records = await catalog.json();
+  test.skip(!records.length, "Search needs an existing catalog record.");
+  const record = records[0];
+
+  await page.getByRole("link", { name: "Search", exact: true }).click();
+  await page.getByPlaceholder("Search records...").fill(record.itemName);
+  const searchPromise = page.waitForResponse(response =>
+    response.url().startsWith(apiUrl + "/records/search?") && response.request().method() === "GET");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const search = await searchPromise;
+  expect(search.status()).toBe(200);
+  expect((await search.json()).some(result => result.id === record.id)).toBe(true);
+  const result = page.locator(".card").filter({
+    has: page.getByRole("heading", { name: record.itemName, exact: true }),
+  }).first();
+  await result.getByRole("button", { name: "View", exact: true }).click();
+  await expect(page.getByRole("heading", { name: record.itemName, exact: true })).toBeVisible();
+  await expect(page.locator("dd").filter({ hasText: record.museumName }).first()).toBeVisible();
+
+  const typesPromise = page.waitForResponse(response =>
+    response.url() === apiUrl + "/object-types" && response.request().method() === "GET");
+  await page.getByRole("link", { name: "New Record", exact: true }).click();
+  const types = await typesPromise;
+  expect(types.status()).toBe(200);
+  expect(Array.isArray(await types.json())).toBe(true);
+  await expect(page.getByRole("heading", { name: "Manually enter a new record" })).toBeVisible();
+  await expect(page.locator('input[type="file"]')).toBeVisible();
+});
+
 for (const account of accounts) {
   test(account.name + " signs in, reaches profile, and signs out", async ({ page }) => {
     const errors = [];
@@ -109,7 +159,7 @@ for (const account of accounts) {
     await expect(page).toHaveURL(/\/profile$/);
     await expect(page.getByRole("heading", { name: "My Records" })).toBeVisible();
     await page.getByRole("link", { name: "New Record", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "New Record" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Manually enter a new record" })).toBeVisible();
     await page.locator(".cl-userButtonTrigger").click();
     await page.getByText("Sign out", { exact: true }).click();
     await expect(page).toHaveURL(/\/login/);

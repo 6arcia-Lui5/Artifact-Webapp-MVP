@@ -1,0 +1,1 @@
+ALTER TABLE "records" ADD COLUMN "item_name" text NOT NULL;

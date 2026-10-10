@@ -4,6 +4,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
+import { recordFields } from '../components/recordFields'
 
 
 function RecordPage() {
@@ -71,17 +72,17 @@ function RecordPage() {
       {/* IMAGE */}
       <div className='card bg-base-300'>
         <figure className='p-4'>
-          <img
-            src={record.imageUrl}
-            alt={record.title}
+          {record.imageSourceUrl ? <img
+            src={record.imageSourceUrl}
+            alt={record.itemName}
             className='rounded-xl w-full h-80 object-cover'
-          />
+          /> : <div className='h-80 w-full flex items-center justify-center text-base-content/50'>No image</div>}
         </figure>
       </div>
 
       <div className='card bg-base-300'>
         <div className='card-body'>
-          <h1 className='card-title text-2xl'>{record.title}</h1>
+          <h1 className='card-title text-2xl'>{record.itemName}</h1>
 
           <div className='flex flex-wrap gap-4 text-sm text-base-content/60 my-2'>
             <div className='flex items-center gap-1'>
@@ -96,7 +97,7 @@ function RecordPage() {
 
           <div className='divider my-2'></div>
 
-          <p className='text-base-content/80 leading-relaxed'>{record.description}</p>
+          <p className='text-base-content/80 leading-relaxed'>{record.museumDescription}</p>
 
           {record.user && (
             <>
@@ -126,12 +127,17 @@ function RecordPage() {
       <div className='card-body'>
         <h1 className='card-title text-2xl font-bold'>Overview</h1>
         <div className='divider my-2'></div>
-          <p className='text-base-content/80 leading-relaxed'>Time Period: {record.date}</p>
-          <p className='text-base-content/80 leading-relaxed'>Material: {record.material}</p>
-          <p className='text-base-content/80 leading-relaxed'>Dimensions: {record.dimensions}</p>
-          <p className='text-base-content/80 leading-relaxed'>Classification: {record.classification}</p>
-          <p className='text-base-content/80 leading-relaxed'>Credit: {record.credit}</p>
-          <p className='text-base-content/80 leading-relaxed'>Collection: {record.collections?.title ?? "None"}</p>
+          <dl className='grid gap-3'>
+            {recordFields.filter(field => !field.condition || record[field.condition.field] === field.condition.value).map(({ key, label, type }) => {
+              const value = type === 'object-type' ? record.objectType?.name : record[key];
+              if (value === null || value === undefined || value === '') return null;
+              return <div key={key}>
+                <dt className='font-semibold'>{label}</dt>
+                <dd className='text-base-content/80 whitespace-pre-wrap break-words'>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</dd>
+              </div>;
+            })}
+            <div><dt className='font-semibold'>Collection</dt><dd>{record.collection?.title ?? "None"}</dd></div>
+          </dl>
       </div>
     </div>
   </div>

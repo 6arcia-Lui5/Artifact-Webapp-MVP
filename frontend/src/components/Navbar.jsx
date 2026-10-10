@@ -5,7 +5,7 @@ import { DraftingCompassIcon, PlusIcon, UserIcon, Search } from "lucide-react";
 export default function Navbar() {
   const { isLoaded, isSignedIn } = useAuth();
   return (
-    <header className="navbar bg-base-300">
+    <header className="navbar bg-purple-950 text-secondary">
       <nav aria-label="Main navigation" className="max-w-5xl mx-auto w-full px-4 flex flex-wrap items-center justify-between gap-3 py-2">
         <Link to="/" className="flex items-center gap-2">
           <DraftingCompassIcon className="size-5 text-primary" aria-hidden="true" />

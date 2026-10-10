@@ -1,0 +1,1 @@
+ALTER TABLE "records" ALTER COLUMN "hhw_identifier" DROP NOT NULL;

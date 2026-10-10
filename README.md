@@ -2,6 +2,16 @@
 
 An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzle, and Clerk.
 
+## Catalog updates
+
+The October 9 site update integrates GitHub main commit `5494d48` with the existing five-account access controls.
+It adds catalog search, the expanded artifact metadata form, object-type selection and creation, and Excel/CSV imports up to 4 MB.
+Record cards, profiles, and detail pages use the new database fields. Imports refresh the catalog and profile lists.
+Record ownership and identifiers remain controlled by the backend.
+
+The shared Neon database already uses the new schema; this update does not run database migrations or change existing artifact records.
+The separate `ml-date-region-models` branch is not included.
+
 ## Access
 
 - Every catalog page, including search and artifact details, checks the Clerk session against the backend before rendering. Visitors go to `/login`; signed-in accounts outside the five approved IDs see an access-denied screen.
@@ -81,6 +91,7 @@ Deploy the backend first, then the frontend. If its URL changes, update `FRONTEN
 ```sh
 # backend
 npm run build
+npm test
 
 # frontend
 npm run build
@@ -91,7 +102,7 @@ npm run test:e2e
 Browser tests require both local servers, the five seeded accounts, and Microsoft Edge.
 The Playwright browser channel can be changed in `frontend/playwright.config.mjs`.
 Tests cover login-first browsing, protected routes/API calls, responsive login, incorrect passwords,
-and sign-in/sign-out with all five accounts. Tests use real Clerk sessions and synchronize developer users into the configured development database.
+sign-in/sign-out with all five accounts, catalog search, record details, and authenticated object-type requests. Tests use real Clerk sessions and synchronize developer users into the configured development database.
 No artifact records are created or deleted by the tests. Tracing, screenshots, and video are disabled for credential-handling tests.
 
 ## Where to add features
