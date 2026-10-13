@@ -12,6 +12,7 @@ function ObjectTypeInput({
   loading,
   createObjectType,
   onChange,
+  required,
 }) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -75,6 +76,8 @@ function ObjectTypeInput({
           loading ||
           createObjectType.isPending
         }
+        required={required}
+        aria-label="Object Type"
         onChange={(e) => {
           setQuery(e.target.value);
           onChange("");
@@ -233,6 +236,7 @@ function CreatePage() {
                 value={formData[key]}
                 objectTypes={objectTypes}
                 loading={objectTypesLoading}
+                required={required}
                 createObjectType={createObjectType}
                 onChange={(value) =>
                   setFormData({
@@ -307,8 +311,8 @@ function CreatePage() {
           ))}
 
 
-          <button type="submit" className="btn btn-primary w-full">
-            Create Record
+          <button type="submit" className="btn btn-primary w-full" disabled={createRecord.isPending}>
+            {createRecord.isPending ? "Saving Record…" : "Create Record"}
           </button>
         </form>
         <div className="px-10">

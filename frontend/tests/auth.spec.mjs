@@ -150,6 +150,56 @@ test("search, record details and object types work with an approved account", as
   await expect(page.locator('input[type="file"]')).toBeVisible();
 });
 
+test("museum links show real images while invalid sources have a visible fallback", async ({ page }) => {
+  await page.goto("/");
+  await login(page, accounts[0]);
+  const museumImage = page.locator('img[src*="images.metmuseum.org/CRDImages/"]').first();
+  await expect(museumImage).toBeVisible({ timeout: 20000 });
+  await expect.poll(() => museumImage.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect(page.getByText("Image unavailable", { exact: true }).first()).toBeVisible();
+  expect(await page.locator('img[src="Colour photo"]').count()).toBe(0);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (process.env.E2E_CAPTURE) await page.screenshot({
+      path: `../.local/artifact-images-${process.env.E2E_HOSTED ? "live" : "local"}-${width}.png`, fullPage: true,
+    });
+  }
+});
+
+test("the create form keeps image entry available and preserves input after a save error", async ({ page }) => {
+  await page.goto("/create");
+  const typesPromise = page.waitForResponse(response => response.url() === apiUrl + "/object-types");
+  await login(page, accounts[0]);
+  const types = await (await typesPromise).json();
+  const field = label => page.locator(".form-control").filter({
+    has: page.locator("label").filter({ hasText: label }),
+  }).locator("input, textarea, select").first();
+  for (const [label, value] of [
+    ["Item Name", "Save verification"], ["Museum or Institute's Name", "Museum"],
+    ["City", "City"], ["Country", "Country"], ["Museum or Institute Number", "123"],
+    ["Date / Culture / Time Period", "6th century"], ["Materials", "Gold"], ["Dimensions", "10 cm"],
+  ]) await field(label).fill(value);
+  await page.getByRole("textbox", { name: "Object Type", exact: true }).fill(types[0].name);
+  await page.getByRole("button", { name: types[0].name, exact: true }).click();
+  const imageInput = page.getByPlaceholder("Direct image URL or Met Museum collection link");
+  await expect(imageInput).toBeVisible();
+  await imageInput.fill("https://www.metmuseum.org/art/collection/search/464070");
+  let payload;
+  await page.route(apiUrl + "/records", route => {
+    if (route.request().method() !== "POST") return route.continue();
+    payload = route.request().postDataJSON();
+    return route.fulfill({ status: 400, contentType: "application/json",
+      body: JSON.stringify({ error: "Choose an existing Object Type or create it before saving." }) });
+  });
+  await page.getByRole("button", { name: "Create Record", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Choose an existing Object Type");
+  await expect(field("Item Name")).toHaveValue("Save verification");
+  await expect(imageInput).toHaveValue("https://www.metmuseum.org/art/collection/search/464070");
+  expect(payload.imageSourceUrl).toBe("https://www.metmuseum.org/art/collection/search/464070");
+  expect(payload.imagery).toBe(false);
+});
+
 for (const account of accounts) {
   test(account.name + " signs in, reaches profile, and signs out", async ({ page }) => {
     const errors = [];

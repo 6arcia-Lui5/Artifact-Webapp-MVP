@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import { useMyRecords, useDeleteRecord } from "../../hooks/useRecords";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ArtifactImage from "../components/ArtifactImage";
 import {
   PlusIcon,
   PackageIcon,
@@ -80,17 +81,8 @@ const ProfilePage = () => {
             >
               {/* Image */}
               <figure className="w-32 shrink-0">
-                {record.imageSourceUrl ? (
-                  <img
-                    src={record.imageSourceUrl}
-                    alt={record.itemName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full min-h-32 w-full bg-base-200 flex items-center justify-center text-base-content/40">
-                    No image
-                  </div>
-                )}
+                <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+                  className="h-full min-h-32 w-full object-cover" />
               </figure>
 
               {/* Record information */}

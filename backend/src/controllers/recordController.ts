@@ -2,8 +2,8 @@ import type { Request, Response } from "express"
 import * as queries from "../db/queries"
 import { getAuth } from "@clerk/express"
 import * as XLSX from "xlsx"
-import { db } from "../db";
-import { objectTypes, type NewRecord } from "../db/schema";
+import { type NewRecord } from "../db/schema";
+import { normalizeImportHeader, recordValidationError } from "../lib/recordValidation";
 
 // Record identity, ownership and timestamps are managed by the server.
 const editableRecordData = (body: NewRecord) =>
@@ -167,6 +167,8 @@ export const createRecord = async (req: Request, res: Response) => {
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
         const payload = { ...editableRecordData(req.body), userId };
+        const validationError = recordValidationError(payload);
+        if (validationError) return res.status(400).json({ error: validationError });
 
         const record = await queries.createRecord(payload);
 
@@ -231,7 +233,10 @@ export const updateRecord = async (req: Request, res: Response) => {
         if (existing.userId !== userId)
             return res.status(403).json({ error: "You can only update your own records" });
 
-        const updated = await queries.updateRecord(id, editableRecordData(req.body));
+        const payload = editableRecordData(req.body);
+        const validationError = recordValidationError(payload, { partial: true });
+        if (validationError) return res.status(400).json({ error: validationError });
+        const updated = await queries.updateRecord(id, payload);
 
         res.status(200).json(updated);
     } catch (error) {
@@ -325,6 +330,24 @@ export const importRecords = async (req: Request, res: Response) => {
             });
         }
 
+        rows = rows.map(row => Object.fromEntries(Object.entries(row)
+            .filter(([, value]) => value !== null && value !== undefined)
+            .map(([header, value]) => [normalizeImportHeader(header), value])));
+
+        // Validate every row before creating object types or inserting records.
+        // Spreadsheet punctuation and whitespace must not turn filled cells into nulls.
+        for (const [index, row] of rows.entries()) {
+            const mapped: Record<string, unknown> = {};
+            for (const [header, key] of Object.entries(FIELD_MAP)) {
+                const value = row[normalizeImportHeader(header)];
+                mapped[key] = value === null || value === undefined ? null : String(value).trim();
+            }
+            const error = recordValidationError(mapped, { objectTypeMode: "name" });
+            if (error) {
+                return res.status(400).json({ error: `Spreadsheet row ${index + 2}: ${error}` });
+            }
+        }
+
         // ----------------------------------------
         // Cache object types
         // ----------------------------------------
@@ -349,26 +372,7 @@ export const importRecords = async (req: Request, res: Response) => {
                 return cachedId;
             }
 
-            // Check database
-            const existingType =
-                await db.query.objectTypes.findFirst({
-                    where: (objectTypes, { eq }) =>
-                        eq(objectTypes.name, normalizedName),
-                });
-
-            if (existingType) {
-                objectTypeCache.set(cacheKey, existingType.id);
-
-                return existingType.id;
-            }
-
-            // Create new object type
-            const [newType] = await db
-                .insert(objectTypes)
-                .values({
-                    name: normalizedName,
-                })
-                .returning();
+            const newType = await queries.getOrCreateObjectType(normalizedName);
 
             objectTypeCache.set(cacheKey, newType.id);
 
@@ -392,7 +396,7 @@ export const importRecords = async (req: Request, res: Response) => {
                     continue;
                 }
 
-                const value = row[csvKey];
+                const value = row[normalizeImportHeader(csvKey)];
 
                 // --------------------------------
                 // Object Type
@@ -445,7 +449,7 @@ export const importRecords = async (req: Request, res: Response) => {
                 // --------------------------------
                 // Normal fields
                 // --------------------------------
-                mapped[dbKey] = value ?? null;
+                mapped[dbKey] = value === null || value === undefined ? null : String(value).trim();
             }
 
             mappedRecords.push(mapped);

@@ -70,7 +70,7 @@ export const recordFields = [
     key: "dateCulturePeriod",
     label: "Date / Culture / Time Period",
     type: "text",
-    required: false,
+    required: true,
   },
   {
     key: "datingBasis",
@@ -246,10 +246,7 @@ export const recordFields = [
     label: "Image Source URL",
     type: "url",
     required: false,
-    condition: {
-      field: "imagery",
-      value: true,
-    },
+    placeholder: "Direct image URL or Met Museum collection link",
   },
   {
     key: "imageType",

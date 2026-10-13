@@ -5,6 +5,8 @@ import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
 import { recordFields } from '../components/recordFields'
+import ArtifactImage from '../components/ArtifactImage'
+import { sourceUrl } from '../../lib/artifactImages'
 
 
 function RecordPage() {
@@ -72,12 +74,11 @@ function RecordPage() {
       {/* IMAGE */}
       <div className='card bg-base-300'>
         <figure className='p-4'>
-          {record.imageSourceUrl ? <img
-            src={record.imageSourceUrl}
-            alt={record.itemName}
-            className='rounded-xl w-full h-80 object-cover'
-          /> : <div className='h-80 w-full flex items-center justify-center text-base-content/50'>No image</div>}
+          <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+            className='rounded-xl w-full h-80 object-cover' />
         </figure>
+        {sourceUrl(record.imageSourceUrl) && <a href={sourceUrl(record.imageSourceUrl)}
+          target='_blank' rel='noreferrer' className='link px-4 pb-4'>View image source</a>}
       </div>
 
       <div className='card bg-base-300'>

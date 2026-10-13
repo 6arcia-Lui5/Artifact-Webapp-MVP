@@ -12,6 +12,14 @@ Record ownership and identifiers remain controlled by the backend.
 The shared Neon database already uses the new schema; this update does not run database migrations or change existing artifact records.
 The separate `ml-date-region-models` branch is not included.
 
+## Artifact images and saving
+
+The October 13 fix accepts straight or curly apostrophes and extra whitespace in spreadsheet headings. It validates all rows before database writes and reports the row and missing or invalid field. Manual saves use the same required-field and image-URL checks.
+
+`Image Source URL` accepts a direct image URL or a Met Museum collection link. Met links resolve to the museum's image through its [official object API](https://metmuseum.github.io/#object), with a ten-second timeout and shared query caching. Catalog cards, profiles, and details show a fallback when a source is invalid or an image cannot load. The image field is available whether or not the artifact has imagery; the source link remains available on its detail page.
+
+Existing imported records are not rewritten. Entries whose source is `Colour photo` still need their correct image links supplied. The seven existing records include test entries and are not evidence that the complete client workbook has been imported.
+
 ## Access
 
 - Every catalog page, including search and artifact details, checks the Clerk session against the backend before rendering. Visitors go to `/login`; signed-in accounts outside the five approved IDs see an access-denied screen.
@@ -102,7 +110,7 @@ npm run test:e2e
 Browser tests require both local servers, the five seeded accounts, and Microsoft Edge.
 The Playwright browser channel can be changed in `frontend/playwright.config.mjs`.
 Tests cover login-first browsing, protected routes/API calls, responsive login, incorrect passwords,
-sign-in/sign-out with all five accounts, catalog search, record details, and authenticated object-type requests. Tests use real Clerk sessions and synchronize developer users into the configured development database.
+sign-in/sign-out with all five accounts, catalog search, record details, authenticated object-type requests, museum images and image fallbacks, and form recovery after save errors. Tests use real Clerk sessions and synchronize developer users into the configured development database.
 No artifact records are created or deleted by the tests. Tracing, screenshots, and video are disabled for credential-handling tests.
 
 ## Where to add features
