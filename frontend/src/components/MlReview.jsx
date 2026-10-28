@@ -9,7 +9,8 @@ export default function MlReview({ record }) {
   const result = check.data;
   return <section className="card border border-base-300"><div className="card-body space-y-3">
     <h2 className="text-xl font-semibold">Inscription metadata review</h2>
-    <p className="text-sm text-base-content/70">Compare the original inscription text with the catalog date and place. These model suggestions need scholarly review; running a check does not change the artifact.</p>
+    <p className="text-sm text-base-content/70">Check saved inscription text against the catalog date and place. This does not transcribe photographs or change the artifact.</p>
+    <p className="text-sm text-base-content/70">The neural model reads up to 256 cleaned characters. Longer text is only partly analyzed by that model. Suggestions need scholarly review.</p>
     <dl className="grid gap-3 sm:grid-cols-2 text-sm">
       <div><dt className="font-semibold">Catalog date</dt><dd>{record.dateCulturePeriod || "Not recorded"}</dd></div>
       <div><dt className="font-semibold">Catalog place</dt><dd>{record.productionPlace || record.findspot || "Not recorded"}{!record.productionPlace && record.findspot ? " (findspot)" : ""}</dd></div>

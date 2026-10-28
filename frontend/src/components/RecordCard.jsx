@@ -13,7 +13,7 @@ const RecordCard = ({ record }) => {
         >
             <figure className="px-4 pt-4">
                 <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
-                    className="rounded-xl h-40 w-full object-cover" />
+                    className="rounded-xl h-48 w-full object-contain bg-white p-3" />
             </figure>
 
             <div className="card-body p-4">
@@ -21,7 +21,7 @@ const RecordCard = ({ record }) => {
                     {record.itemName}
 
                     {isNew && (
-                        <span className="badge badge-secondary badge-sm">
+                        <span className="badge badge-outline badge-sm shrink-0 border-base-content/25 text-base-content">
                             NEW
                         </span>
                     )}
