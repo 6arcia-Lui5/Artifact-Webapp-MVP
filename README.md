@@ -57,6 +57,40 @@ The Python service is a separate process, not bundled into the Express Vercel fu
 
 The committed reports describe historical evaluation runs, not accuracy reproduced during integration. In `ml/reports/comparison.json`, region top-one accuracy is 57.43% and top-three accuracy is 81.11%; these are different measures. The selected demo pairs are smoke-test examples, not a representative accuracy benchmark.
 
+## Photo transcription drafts
+
+In the artifact editor, open **Transcribe a photo**. Choose a local PNG, JPEG or WebP, or use **Use catalog image**. Met collection links use a protected, fixed-host image gateway because the museum image CDN does not allow browser downloads. Other image hosts must allow browser downloads; choosing a downloaded local file remains available. Originals are limited to 8 MB and 20 megapixels.
+
+Select the inscription area, rotate if needed, and choose Latin, Ancient Greek, English or Hebrew. Review and correct the result beside the photograph, then choose **Add transcription** and **Save changes**. An untouched blank entry is reused; saved or partially edited inscriptions are preserved. Recognition alone never writes artifact data. The photo used for recognition is not saved as the artifact image.
+
+Two recognition methods are available:
+
+- **On-device OCR** runs pinned Tesseract.js in a browser worker. Local files are not uploaded. Runtime/language assets download when needed. This is a basic fallback; carved, curved and damaged lettering can produce substantial errors.
+- **Vision service** is optional and appears when the backend has a configured service URL. Only the selected crop is sent to that service. The UI compresses the crop below 3.5 MB, leaving room under Vercel's 4.5 MB request limit. Server upload/decode/response limits, cancellation and timeouts apply. A service outage preserves form input and manual entry remains available.
+
+For local vision recognition, install [Ollama](https://docs.ollama.com/windows), download `qwen3-vl:2b-instruct`, and keep Ollama bound to loopback. Set these **backend-only** variables and restart the backend:
+
+```dotenv
+LOCAL_VISION_URL=http://127.0.0.1:11434
+LOCAL_VISION_MODEL=qwen3-vl:2b-instruct
+# Optional credential for an authenticated hosted proxy; never use a VITE_ variable:
+LOCAL_VISION_TOKEN=<service-token-if-required>
+```
+
+The default model is the explicitly named Instruct checkpoint; the shorter `qwen3-vl:2b` tag currently selects the Thinking checkpoint and is not the tested default. The service URL must implement the Ollama `/api/chat` contract. The status route reports configuration, not proof that a server is awake or a model is installed. Configure one job at the model server (`OLLAMA_NUM_PARALLEL=1` for Ollama); per-process backend limits do not coordinate separate Vercel instances.
+
+The hosted catalog must not depend on a researcher's PC. See [hosting and local fallback options](docs/photo-transcription-hosting.md) and the [measured limitations](docs/photo-transcription-evaluation.md). No paid service, public PC endpoint or hosted recognition account is provisioned by this change. Researchers can also run `scripts/transcribe-photo-local.py` against their own local model and paste corrected text into the website.
+
+### Photo workflow checks
+
+```sh
+npm run test:unit --prefix frontend
+python -m unittest discover -s tests -p test_transcribe_photo_local.py
+node scripts/prepare-photo-fixtures.cjs
+```
+
+The preparation script downloads three Met Open Access photos and generates clearly separate text controls in ignored `.local/ocr-evaluation/fixtures`. To include the real photo workflow in the existing disposable database runner, set `E2E_PHOTO=1` and `LOCAL_VISION_URL` before `npm run test:workflow` in `backend`. The extra browser checks exercise actual vision and browser OCR, review/save/reload, cancellation, blank results, existing museum images and service failures. They never target the shared public artifact tables.
+
 ## Artifact images and saving
 
 The October 13 fix accepts straight or curly apostrophes and extra whitespace in spreadsheet headings. It validates all rows before database writes and reports the row and missing or invalid field. Manual saves use the same required-field and image-URL checks.
@@ -156,7 +190,7 @@ Browser tests require both local servers, the five seeded accounts, and Microsof
 The Playwright browser channel can be changed in `frontend/playwright.config.mjs`.
 Tests cover login-first browsing, protected routes/API calls, responsive login, incorrect passwords,
 sign-in/sign-out with all five accounts, catalog search, record details, authenticated object-type requests, museum images and image fallbacks, and form recovery after save errors. Tests use real Clerk sessions and synchronize developer users into the configured development database.
-No artifact records are created or deleted by the tests. Tracing, screenshots, and video are disabled for credential-handling tests.
+Default authentication checks do not create or delete artifact records. Opt-in write tests use the disposable workflow below. Tracing, screenshots, and video are disabled for credential-handling tests.
 
 For the optional real-model bridge check, also run the Python service and set `E2E_ML=1` before `npm run test:e2e`. The test signs in with an approved account, checks anonymous denial, and sends bundled inscription text through Express to the real model. For a production preview build, set `E2E_HOSTED=1`; `E2E_FRONTEND_URL` and `E2E_API_URL` can point to isolated local ports. Backend ML integration tests substitute Clerk, database reads and the Python service to check access denial, Unicode forwarding, stored-record checks and model-service failures without changing shared artifact data.
 
