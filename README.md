@@ -15,9 +15,17 @@ An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzl
 
 The routing merge retains the backend allowlist, login-first browsing, responsive login and production signup restrictions. The ML routes run behind that same allowlist. Model requests have a ten-second timeout so an unavailable Python service does not leave them waiting indefinitely. Existing import validation, image handling and deployment configuration are preserved. No database migration is needed for this merge.
 
-The older `create-page` commit `47bdf9f` was reviewed but not merged: its unfinished editor uses the previous `title`/`description` schema, an undefined `Label`, and an invalid submit handler. It is a reference for the next editing task, not a working editor for the current schema. The other historical database/query/route branches are already ancestors of `main`; the bug-fix and access branches are already ancestors of the protected demo.
+The older `create-page` editor targeted a previous schema. The current editor uses today's artifact fields without rewriting that historical branch. The other historical database/query/route branches are already ancestors of `main`; the bug-fix and access branches are already ancestors of the protected demo.
 
-Remaining product work: editing, inscription entry/persistence/display, catalog filters, reviewable imports and source-verified corrections to existing records. Collections remain a placeholder. There is no catalog ML button yet, and the database checked before integration had no inscriptions. An API bridge and a separate ML demo do not complete that user workflow.
+## Artifact editing and inscriptions
+
+Open an artifact you created and choose **Edit**, or open **Profile** and choose its **Edit** action. The editor preloads the current metadata and all stored inscription entries. Fields are grouped into identification, museum, dating/provenance, physical description, inscriptions, and images/sources. Save changes returns to the artifact and refreshes detail, profile and catalog/search caches; Cancel returns without saving.
+
+Check **Inscribed?** to enter original text, language, script, an optional English translation, and serif/stopmark information. Use **Add inscription** for multiple entries. Existing inscription IDs are preserved. Removing an entry only takes effect on Save; metadata-only API updates that omit `inscriptions` preserve all existing entries. The backend validates every supplied entry before writes and saves the artifact and inscription set in one transaction. Only the artifact's creator can edit it. Deleting an owned artifact also removes its linked inscriptions in the same transaction.
+
+New artifact saves open their detail page. Failed saves preserve form input and display an actionable error. The image source stays available independently of the artifact's imagery flag; **Preview image** checks the supplied link before saving. Existing imports with invalid source descriptions still need a valid link or a blank source, and misplaced metadata must be corrected against the original workbook. No existing client data is automatically rewritten.
+
+Spreadsheet upload remains available below manual entry. It currently imports artifact metadata; add transcription text through the editor. Filtered catalog discovery, an import preview, collections, and source-verified cleanup of legacy data remain follow-up work.
 
 Integration verification on October 28: frontend/backend builds and frontend lint passed; all 15 backend tests passed; all 15 catalog/login browser tests passed against a local production preview; the separate authenticated real-model bridge browser test passed; both baseline and deep models returned valid results for all 16 bundled examples. The deep model agreed with all 16 selected demo labels, while the baseline agreed with 14. These selected examples do not measure general accuracy. The verified runtime was Python 3.12.16, scikit-learn 1.9.1 and CPU PyTorch 2.14.1. Neither training nor held-out evaluation was rerun, and artifact records were not created, changed or deleted by the checks.
 
@@ -143,6 +151,11 @@ sign-in/sign-out with all five accounts, catalog search, record details, authent
 No artifact records are created or deleted by the tests. Tracing, screenshots, and video are disabled for credential-handling tests.
 
 For the optional real-model bridge check, also run the Python service and set `E2E_ML=1` before `npm run test:e2e`. The test signs in with an approved account, checks anonymous denial, and sends bundled inscription text through Express to the real model. For a production preview build, set `E2E_HOSTED=1`; `E2E_FRONTEND_URL` and `E2E_API_URL` can point to isolated local ports. Backend ML integration tests substitute Clerk, database reads and the Python service to check access denial, Unicode forwarding, stored-record checks and model-service failures without changing shared artifact data.
+
+
+### Isolated write-workflow tests
+
+Start the Python service on port 8007 (or set `ML_SERVICE_URL`), then run `npm run test:workflow` from `backend`. This development runner uses the existing ignored developer-account sheet and database credentials. It creates a unique disposable schema, clones the five table definitions, seeds synthetic data, and points local backend/browser tests exclusively at that schema. Neon pooled URLs are converted to a direct endpoint in memory for isolated `search_path` handling. It tests actual Postgres transaction rollback and cleans up only its generated schema and test servers in a `finally` block. It does not write public artifact tables or alter the production schema definitions. Do not run artifact write tests against the shared public catalog; `E2E_WRITE` is for this isolated runner.
 
 ## Where to add features
 

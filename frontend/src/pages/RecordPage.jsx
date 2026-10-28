@@ -7,6 +7,7 @@ import { useParams, Link, useNavigate } from 'react-router'
 import { recordFields } from '../components/recordFields'
 import ArtifactImage from '../components/ArtifactImage'
 import { sourceUrl } from '../../lib/artifactImages'
+import InscriptionDetails from '../components/InscriptionDetails'
 
 
 function RecordPage() {
@@ -122,6 +123,8 @@ function RecordPage() {
         </div>
       </div>
     </div>
+
+    <InscriptionDetails entries={record.inscriptions} />
 
     {/* Relevant Details */}
     <div className='card bg-base-300'>

@@ -14,6 +14,10 @@ export function recordValidationError(data: Record<string, unknown>, options: {
     partial?: boolean;
     objectTypeMode?: "id" | "name";
 } = {}): string | null {
+    for (const key of ["inscribed", "imagery"]) {
+        if (options.objectTypeMode !== "name" && key in data && typeof data[key] !== "boolean")
+            return `${key} must be true or false.`;
+    }
     for (const [key, label] of Object.entries(requiredRecordFields)) {
         if (options.partial && !(key in data)) continue;
         if (typeof data[key] !== "string" || !data[key].trim()) return `${label} is required.`;
