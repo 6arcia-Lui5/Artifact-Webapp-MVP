@@ -171,7 +171,15 @@ Set `ML_SERVICE_URL` in `backend/.env` if the service is not on `http://localhos
 On the local integration branch, both routes are behind the existing approved-
 account access wall, and requests to Python time out after ten seconds. The
 standalone Python demo is a separate development surface: run it on localhost.
-It is not authenticated through Clerk and is not the hosted catalog's ML UI.
+It is not authenticated through Clerk. The integrated artifact detail page has
+its own **Run ML check** action behind the approved-account access wall. That
+action shows review suggestions without updating catalog values. A hosted
+deployment still needs a separately configured Python service.
+
+Stored-record date checks require an explicit era and a supported whole format.
+Ambiguous or unrecognized date text and dates outside 800 BCE to 1000 CE are
+skipped with an explanatory note; the parser does not reinterpret museum numbers
+or mixed BCE/CE spans as a single date range.
 
 ## Limits
 

@@ -12,25 +12,25 @@ const ML_URL = ENV.ML_SERVICE_URL || "http://localhost:8001";
 // Turn free-text dating ("2nd century CE", "100-200 CE", "1st c. BCE")
 // into a year range. Returns nulls when nothing can be read.
 export function parseDating(text?: string | null): { notBefore: number | null; notAfter: number | null } {
-    if (!text) return { notBefore: null, notAfter: null };
-    const t = text.toLowerCase();
-    const bce = /\b(bce|bc|b\.c\.)\b/.test(t);
-    const sign = bce ? -1 : 1;
-
-    // "2nd century", "2nd-3rd century", "5th to 4th c." -> list of centuries
-    const cent: number[] = [];
-    for (const m of t.matchAll(/(\d{1,2})(?:st|nd|rd|th)?(?:\s*(?:-|–|to)\s*(\d{1,2})(?:st|nd|rd|th))?\s*(?:c\b|c\.|cent)/g)) {
-        cent.push(parseInt(m[1], 10));
-        if (m[2]) cent.push(parseInt(m[2], 10));
+    const unknown = { notBefore: null, notAfter: null };
+    if (!text) return unknown;
+    const normalized = text.trim().toLowerCase().replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, " ");
+    // Require an explicit era and a whole supported format. Avoid silently
+    // treating museum numbers, mixed BCE/CE spans or prose as dates.
+    const century = normalized.match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s*(?:-|to)\s*(\d{1,2})(?:st|nd|rd|th)?)?\s*(?:century|centuries|c\.?)\s*(bce|bc|ce|ad)$/);
+    if (century) {
+        const lo = Math.min(Number(century[1]), Number(century[2] || century[1]));
+        const hi = Math.max(Number(century[1]), Number(century[2] || century[1]));
+        if (lo === 0) return unknown;
+        return century[3].startsWith("b")
+            ? { notBefore: -hi * 100, notAfter: -(lo - 1) * 100 - 1 }
+            : { notBefore: (lo - 1) * 100 + 1, notAfter: hi * 100 };
     }
-    if (cent.length) {
-        const lo = Math.min(...cent), hi = Math.max(...cent);
-        if (bce) return { notBefore: -hi * 100, notAfter: -(lo - 1) * 100 - 1 };
-        return { notBefore: (lo - 1) * 100 + 1, notAfter: hi * 100 };
-    }
-    const years = [...t.matchAll(/\b(\d{1,4})\b/g)].map(m => parseInt(m[1], 10) * sign);
-    if (years.length) return { notBefore: Math.min(...years), notAfter: Math.max(...years) };
-    return { notBefore: null, notAfter: null };
+    const years = normalized.match(/^(\d{1,4})(?:\s*(?:-|to)\s*(\d{1,4}))?\s*(bce|bc|ce|ad)$/);
+    if (!years || Number(years[1]) === 0 || Number(years[2] || years[1]) === 0) return unknown;
+    const sign = years[3].startsWith("b") ? -1 : 1;
+    const first = Number(years[1]) * sign, last = Number(years[2] || years[1]) * sign;
+    return { notBefore: Math.min(first, last), notAfter: Math.max(first, last) };
 }
 
 async function callMl(path: string, body: unknown) {
@@ -62,14 +62,22 @@ router.get("/records/:id/check", async (req: Request, res: Response) => {
         if (!texts.length) return res.status(400).json({ error: "Record has no inscription text" });
 
         const { notBefore, notAfter } = parseDating(record.dateCulturePeriod);
+        const supportedDate = notBefore !== null && notAfter !== null && notBefore >= -800 && notAfter <= 1000;
+        const listedRegion = record.productionPlace || record.findspot || null;
         const result = await callMl("/check", {
             id: record.id,
             text: texts.join(" "),
-            not_before: notBefore,
-            not_after: notAfter,
-            region: record.productionPlace || record.findspot || null,
+            not_before: supportedDate ? notBefore : null,
+            not_after: supportedDate ? notAfter : null,
+            region: listedRegion,
         });
-        res.json({ recordId: record.id, listedDating: record.dateCulturePeriod, ...result });
+        res.json({
+            recordId: record.id, listedDating: record.dateCulturePeriod, listedRegion,
+            dateNote: supportedDate ? null : notBefore === null
+                ? "The catalog date was not parsed. Use an explicit range such as 100-200 CE or 2nd century BCE; date metadata was not checked."
+                : "The catalog date is outside the model's supported range; date metadata was not checked.",
+            ...result,
+        });
     } catch (e) {
         res.status(502).json({ error: "ML check failed", detail: String(e) });
     }

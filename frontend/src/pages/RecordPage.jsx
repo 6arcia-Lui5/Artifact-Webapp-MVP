@@ -8,6 +8,7 @@ import { recordFields } from '../components/recordFields'
 import ArtifactImage from '../components/ArtifactImage'
 import { sourceUrl } from '../../lib/artifactImages'
 import InscriptionDetails from '../components/InscriptionDetails'
+import MlReview from '../components/MlReview'
 
 
 function RecordPage() {
@@ -125,6 +126,7 @@ function RecordPage() {
     </div>
 
     <InscriptionDetails entries={record.inscriptions} />
+    <MlReview key={`${record.id}-${record.updatedAt}`} record={record} />
 
     {/* Relevant Details */}
     <div className='card bg-base-300'>

@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 
 const credentialsPath = new URL("../../.local/dev-accounts.json", import.meta.url);
 const accounts = fs.existsSync(credentialsPath) ? JSON.parse(fs.readFileSync(credentialsPath, "utf8")) : [];
@@ -239,4 +241,107 @@ test("approved accounts can use the integrated ML bridge while anonymous callers
   expect(typeof prediction.region).toBe("string");
   expect(typeof prediction.date.year).toBe("number");
   expect(Array.isArray(prediction.flags)).toBe(true);
+});
+
+test("create, edit, reload and review multiple inscriptions against the real isolated database", async ({ page, request }) => {
+  test.skip(!process.env.E2E_WRITE, "Run through backend test:workflow to isolate database writes.");
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  const fixture = JSON.parse(fs.readFileSync(process.env.E2E_FIXTURE, "utf8"));
+  const examples = JSON.parse(fs.readFileSync(new URL("../../ml/demo/examples.json", import.meta.url), "utf8"));
+  await page.goto("/create");
+  await login(page, accounts[0]);
+  await expect(page.getByRole("heading", { name: "Manually enter a new record" })).toBeVisible();
+  const token = await page.evaluate(() => window.Clerk.session.getToken());
+  const headers = { Authorization: `Bearer ${token}` };
+  // This guard must succeed before any artifact writes. Fixture IDs exist only
+  // in the disposable schema created by the runner, never in public tables.
+  const guard = await request.get(apiUrl + `/records/${fixture.ownId}`, { headers });
+  expect(guard.status()).toBe(200);
+  expect((await guard.json()).itemName).toBe("Sample catalog artifact");
+  for (const [label, value] of [
+    ["Item Name", "Workflow demo artifact"], ["Museum or Institute's Name", "Demo museum"],
+    ["City", "Demo city"], ["Country", "Demo country"], ["Museum or Institute Number", "WORKFLOW-DEMO"],
+    ["Date / Culture / Time Period", "201-500 CE"], ["Place of Production", "Sicilia"],
+    ["Materials", "Gold"], ["Dimensions", "10 cm"],
+  ]) await page.getByLabel(label).fill(value);
+  await page.getByRole("textbox", { name: "Object Type", exact: true }).fill("Pendant");
+  await page.getByRole("button", { name: "Pendant", exact: true }).click();
+  await page.getByLabel("Inscribed?", { exact: true }).check();
+  await page.getByLabel(/Original inscription text/).fill(examples[0].text);
+  await page.getByLabel(/Language of inscription/).fill("Greek");
+  await page.getByLabel(/Script used/).fill("Greek");
+  await page.getByLabel(/Translation \(English\)/).fill("Demo translation");
+  await page.getByRole("button", { name: "Add inscription", exact: true }).click();
+  await page.getByLabel(/Original inscription text/).nth(1).fill("D M VIXIT");
+  await page.getByLabel(/Language of inscription/).nth(1).fill("Latin");
+  await page.getByLabel(/Script used/).nth(1).fill("Latin");
+  const createResponse = page.waitForResponse(response => response.url() === apiUrl + "/records" && response.request().method() === "POST");
+  await page.getByRole("button", { name: "Create Record", exact: true }).click();
+  const createdResponse = await createResponse;
+  expect(createdResponse.status()).toBe(201);
+  const created = await createdResponse.json();
+  await expect(page).toHaveURL(new RegExp(`/record/${created.id}$`));
+  await expect(page.getByText(examples[0].text, { exact: true })).toBeVisible();
+  await expect(page.getByText("D M VIXIT", { exact: true })).toBeVisible();
+  const before = await (await request.get(apiUrl + `/records/${created.id}`, { headers })).json();
+  expect(before.inscriptions).toHaveLength(2);
+  const ids = before.inscriptions.map(entry => entry.id).sort();
+  const mlResponse = page.waitForResponse(response => response.url() === apiUrl + `/ml/records/${created.id}/check`);
+  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
+  expect((await mlResponse).status()).toBe(200);
+  await expect(page.getByText("Suggested date interval", { exact: true })).toBeVisible();
+  const afterCheck = await (await request.get(apiUrl + `/records/${created.id}`, { headers })).json();
+  expect(afterCheck.updatedAt).toBe(before.updatedAt);
+  expect(afterCheck.dateCulturePeriod).toBe(before.dateCulturePeriod);
+  expect(afterCheck.productionPlace).toBe(before.productionPlace);
+  await page.screenshot({ path: path.join(os.tmpdir(), "artifact-workflow-desktop.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: path.join(os.tmpdir(), "artifact-workflow-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("link", { name: "Edit", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Edit artifact", exact: true })).toBeVisible();
+  await expect(page.getByLabel(/Original inscription text/).first()).toHaveValue(examples[0].text);
+  await page.getByLabel("Item Name").fill("Corrected workflow artifact");
+  await page.getByLabel(/Translation \(English\)/).first().fill("Revised demo translation");
+  const saveResponse = page.waitForResponse(response => response.url() === apiUrl + `/records/${created.id}` && response.request().method() === "PUT");
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  expect((await saveResponse).status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Corrected workflow artifact", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Revised demo translation", { exact: true })).toBeVisible();
+  const saved = await (await request.get(apiUrl + `/records/${created.id}`, { headers })).json();
+  expect(saved.inscriptions.map(entry => entry.id).sort()).toEqual(ids);
+  expect(saved.inscriptions).toHaveLength(2);
+  await page.getByRole("link", { name: "Profile", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Corrected workflow artifact", exact: true })).toBeVisible();
+  await page.goto(`/record/${created.id}`);
+  await page.route(apiUrl + `/ml/records/${created.id}/check`, route => route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "ML service unavailable" }) }));
+  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Your artifact is unchanged");
+  await page.unroute(apiUrl + `/ml/records/${created.id}/check`);
+  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
+  await expect(page.getByText("Suggested date interval", { exact: true })).toBeVisible();
+  const count = (await (await request.get(apiUrl + "/records", { headers })).json()).length;
+  const invalid = await request.post(apiUrl + "/records", { headers, data: {
+    ...saved, inscriptions: [{ content: "", language: "Greek", script: "Greek" }],
+  } });
+  expect(invalid.status()).toBe(400);
+  expect((await (await request.get(apiUrl + "/records", { headers })).json()).length).toBe(count);
+});
+
+test("another approved account cannot edit an artifact or its inscriptions", async ({ page, request }) => {
+  test.skip(!process.env.E2E_WRITE, "Requires the isolated database runner.");
+  const fixture = JSON.parse(fs.readFileSync(process.env.E2E_FIXTURE, "utf8"));
+  await page.goto(`/edit/${fixture.ownId}`);
+  await login(page, accounts[1]);
+  await expect(page.getByRole("heading", { name: "Only the creator can edit this artifact", exact: true })).toBeVisible();
+  const token = await page.evaluate(() => window.Clerk.session.getToken());
+  const headers = { Authorization: `Bearer ${token}` };
+  const response = await request.put(apiUrl + `/records/${fixture.ownId}`, { headers, data: { itemName: "Should not save", inscriptions: [] } });
+  expect(response.status()).toBe(403);
+  const existing = await (await request.get(apiUrl + `/records/${fixture.ownId}`, { headers })).json();
+  expect(existing.itemName).toBe("Sample catalog artifact");
+  expect(existing.inscriptions).toHaveLength(1);
 });

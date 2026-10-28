@@ -2,7 +2,7 @@
 
 An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzle, and Clerk.
 
-## Local branch integration (October 28)
+## Integrated MVP branch (October 28)
 
 `integration/mvp-ml` combines the existing work below. It is published for team review; it is not a deployed release.
 
@@ -27,7 +27,15 @@ New artifact saves open their detail page. Failed saves preserve form input and 
 
 Spreadsheet upload remains available below manual entry. It currently imports artifact metadata; add transcription text through the editor. Filtered catalog discovery, an import preview, collections, and source-verified cleanup of legacy data remain follow-up work.
 
-Integration verification on October 28: frontend/backend builds and frontend lint passed; all 15 backend tests passed; all 15 catalog/login browser tests passed against a local production preview; the separate authenticated real-model bridge browser test passed; both baseline and deep models returned valid results for all 16 bundled examples. The deep model agreed with all 16 selected demo labels, while the baseline agreed with 14. These selected examples do not measure general accuracy. The verified runtime was Python 3.12.16, scikit-learn 1.9.1 and CPU PyTorch 2.14.1. Neither training nor held-out evaluation was rerun, and artifact records were not created, changed or deleted by the checks.
+At the initial integration checkpoint on October 28, frontend/backend builds and frontend lint passed; all 15 backend tests and the 15 catalog/login browser tests passed, followed by the separate authenticated real-model bridge test. Both baseline and deep models returned valid results for all 16 bundled examples. The deep model agreed with all 16 selected demo labels, while the baseline agreed with 14. These selected examples do not measure general accuracy. The verified runtime was Python 3.12.16, scikit-learn 1.9.1 and CPU PyTorch 2.14.1. Neither training nor held-out evaluation was rerun.
+
+After the editing and ML-review changes, both builds, frontend lint, all 23 backend tests, and all 18 browser tests passed. The browser checks cover real create/edit/reload with multiple inscriptions, stable inscription IDs, ownership denial, read-only ML checks and ML failure/retry. The disposable database runner separately verifies rollback of failed creates/updates and removal of linked inscriptions on artifact deletion. Desktop (1280px) and mobile (390px) detail/ML screenshots were inspected; no horizontal overflow was found. Public artifact records were not written by these checks; only synthetic records in disposable schemas were created, changed or deleted, and those schemas were removed afterward.
+
+## Review inscription metadata with ML
+
+On an artifact detail page, **Run ML check** uses the saved original inscription text and compares the predictions with the catalog date and production place (falling back to findspot when production place is absent). It displays the model name, suggested date interval, suggested region, and any review flags. Run the separate Python service before trying this locally. The check never changes stored dates, places, inscriptions or record timestamps. A service outage produces a visible retryable error while the artifact remains available.
+
+Date comparisons accept explicit forms such as `100-200 CE`, `2nd-3rd century CE` or `1st c. BCE`. Unrecognized dates, mixed-era expressions and dates outside 800 BCE to 1000 CE are explicitly marked as not checked rather than silently guessed. Unknown places are reported by the model. No flag means only that the supplied metadata did not trigger the available checks, not proof that the artifact is correctly cataloged. The trained model files and historical accuracy reports are unchanged.
 
 ## Catalog updates
 
@@ -37,7 +45,7 @@ Record cards, profiles, and detail pages use the new database fields. Imports re
 Record ownership and identifiers remain controlled by the backend.
 
 The shared Neon database already uses the new schema; this update does not run database migrations or change existing artifact records.
-The ML branch is now included on the local integration branch described above.
+The ML branch is now included on the integration branch described above.
 
 ## Run the ML component
 

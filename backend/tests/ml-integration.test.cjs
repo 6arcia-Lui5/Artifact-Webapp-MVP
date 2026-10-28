@@ -110,7 +110,7 @@ test("stored-record checks join inscriptions and forward the listed dating and p
     id: "one", text: "D M VIXIT", not_before: 101, not_after: 300, region: "Italy",
   });
   assert.deepEqual(await response.json(), {
-    recordId: "one", listedDating: "2nd-3rd century CE", ...prediction,
+    recordId: "one", listedDating: "2nd-3rd century CE", listedRegion: "Italy", dateNote: null, ...prediction,
   });
 });
 
@@ -129,4 +129,19 @@ test("the imported date parser handles documented CE, BCE, and unknown inputs", 
   assert.deepEqual(parseDating("100-200 CE"), { notBefore: 100, notAfter: 200 });
   assert.deepEqual(parseDating("1st c. BCE"), { notBefore: -100, notAfter: -1 });
   assert.deepEqual(parseDating("undated"), { notBefore: null, notAfter: null });
+  for (const input of ["803.1", "100 BCE-100 CE", "6th century", "0 CE", "0th century BCE", "Roman 2nd century"]) {
+    assert.deepEqual(parseDating(input), { notBefore: null, notAfter: null });
+  }
+  assert.deepEqual(parseDating("5th-4th century BCE"), { notBefore: -500, notAfter: -301 });
+});
+
+test("unrecognized and out-of-range dates are explicitly skipped instead of producing misleading date flags", async () => {
+  for (const dating of ["803.1", "1800 CE"]) {
+    storedRecord = { id: "one", dateCulturePeriod: dating, inscriptions: [{ content: "D M" }] };
+    const response = await check("/api/ml/records/one/check");
+    assert.equal(response.status, 200);
+    assert.equal(received.body.not_before, null);
+    assert.equal(received.body.not_after, null);
+    assert.match((await response.json()).dateNote, /date metadata was not checked/);
+  }
 });

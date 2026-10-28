@@ -40,6 +40,11 @@ export const updateRecord = async (id, recordData) => {
     return data;
 }
 
+export const checkRecordMl = async (id) => {
+    const { data } = await api.get(`/ml/records/${id}/check`, { timeout: 15000 });
+    return data;
+};
+
 export const deleteRecord = async (id) => {
     const { data } = await api.delete(`/records/${id}`);
     return data;
