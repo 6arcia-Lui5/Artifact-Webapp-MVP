@@ -218,3 +218,25 @@ for (const account of accounts) {
     expect(errors).toEqual([]);
   });
 }
+
+test("approved accounts can use the integrated ML bridge while anonymous callers are denied", async ({ page, request }) => {
+  test.skip(!process.env.E2E_ML, "Set E2E_ML=1 when the integrated Python service is running.");
+  const path = apiUrl + "/ml/check";
+  const examples = JSON.parse(fs.readFileSync(new URL("../../ml/demo/examples.json", import.meta.url), "utf8"));
+  const anonymous = await request.post(path, { data: examples[0] });
+  expect(anonymous.status()).toBe(401);
+  await page.goto("/");
+  await login(page, accounts[0]);
+  await expect(page.getByRole("heading", { name: "All Artifacts", exact: true })).toBeVisible();
+  const token = await page.evaluate(() => window.Clerk.session.getToken());
+  const response = await request.post(path, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: examples[0],
+  });
+  expect(response.status()).toBe(200);
+  const prediction = await response.json();
+  expect(prediction.model).toContain("deep");
+  expect(typeof prediction.region).toBe("string");
+  expect(typeof prediction.date.year).toBe("number");
+  expect(Array.isArray(prediction.flags)).toBe(true);
+});

@@ -8,6 +8,7 @@ import recordRoutes from "./routes/recordRoutes"
 import collectionRoutes from "./routes/collectionRoutes"
 import { requireSiteAccess } from "./middleware/requireSiteAccess"
 import objectTypeRoutes from "./routes/objectTypeRoutes";
+import mlRoutes from "./routes/mlRoutes";
 
 const app = express()
 
@@ -36,6 +37,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/records", recordRoutes);
 app.use("/api/object-types", objectTypeRoutes);
+app.use("/api/ml", mlRoutes);
 
 
 // Vercel imports the Express app as a function. Keep the local server for development.
