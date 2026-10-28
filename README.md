@@ -4,7 +4,7 @@ An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzl
 
 ## Local branch integration (October 28)
 
-`codex/integrate-existing-work-2026-10-28` combines the existing work below. It is a local integration branch, not a deployed release.
+`integration/mvp-ml` combines the existing work below. It is published for team review; it is not a deployed release.
 
 | Source | Included work |
 | --- | --- |
