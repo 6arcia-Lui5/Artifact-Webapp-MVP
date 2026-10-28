@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import SearchPage from "./pages/SearchPage";
 import RequireSignIn from "./components/RequireSignIn";
 import RequireSiteAccess from "./components/RequireSiteAccess";
+import AppLayout from "./components/AppLayout";
 import useAuthReq from "../hooks/useAuthReq";
 
 function App() {
@@ -19,22 +20,24 @@ function App() {
       <Route path="/login/*" element={<LoginPage />} />
       {import.meta.env.DEV && <Route path="/signup/*" element={<LoginPage mode="signup" />} />}
       <Route element={<RequireSiteAccess />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/collections" element={<CollectionPage />} />
-        <Route path="/record/:id" element={<RecordPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        {!import.meta.env.DEV && (
-          <Route path="/signup/*" element={
-            <p>Account creation is available only in the local development environment.</p>
-          } />
-        )}
-        <Route element={<RequireSignIn />}>
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/create" element={<CreatePage />} />
-          <Route path="/edit/:id" element={<EditRecordPage />} />
-          <Route path="/edit" element={<EditRecordPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/collections" element={<CollectionPage />} />
+          <Route path="/record/:id" element={<RecordPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          {!import.meta.env.DEV && (
+            <Route path="/signup/*" element={
+              <p>Account creation is available only in the local development environment.</p>
+            } />
+          )}
+          <Route element={<RequireSignIn />}>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/create" element={<CreatePage />} />
+            <Route path="/edit/:id" element={<EditRecordPage />} />
+            <Route path="/edit" element={<EditRecordPage />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );
