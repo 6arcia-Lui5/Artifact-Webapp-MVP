@@ -239,3 +239,5 @@ $RECYCLE.BIN/
 .local/
 frontend/test-results/
 frontend/playwright-report/
+scripts/__pycache__/
+tests/__pycache__/

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router";
 import { recordFields } from "./recordFields";
 import ArtifactImage from "./ArtifactImage";
 import { useObjectTypes, useCreateObjectType } from "../../hooks/useObjectTypes";
+import { addPhotoDraft } from "../../lib/inscriptionDrafts";
+
+const PhotoTranscription = lazy(() => import('./photoTranscription/PhotoTranscription'));
 
 const groups = [
   ["Identification", ["itemName", "hhwIdentifier", "objectTypeId"]],
@@ -50,6 +53,7 @@ export default function ArtifactForm({ record, onSubmit, pending, error, submitL
     .map(field => [field.key, record?.[field.key] ?? (field.type === "checkbox" ? false : "")])));
   const [entries, setEntries] = useState(() => (record?.inscriptions || []).map(entry => ({ ...entry, clientKey: entry.id })));
   const [preview, setPreview] = useState(null);
+  const [transcribeOpen, setTranscribeOpen] = useState(false);
   const change = (key, value) => {
     setValues(current => ({ ...current, [key]: value }));
     if (key === "inscribed" && value && entries.length === 0) setEntries([blankInscription()]);
@@ -86,6 +90,15 @@ export default function ArtifactForm({ record, onSubmit, pending, error, submitL
         <legend className="pr-3 text-lg font-semibold">{title}</legend>
         <div className="grid gap-4 sm:grid-cols-2">{keys.map(key => renderField(fieldsByKey.get(key)))}</div>
         {title === "Inscriptions" && <div className="space-y-5 mt-4">
+          <button type="button" className="btn btn-outline btn-sm" aria-expanded={transcribeOpen} aria-controls="photo-transcription-panel" onClick={() => setTranscribeOpen(open => !open)}>Transcribe a photo</button>
+          {transcribeOpen && <div id="photo-transcription-panel" className="rounded-xl border border-base-300 p-4">
+            <Suspense fallback={<p role="status">Loading photo transcription...</p>}>
+              <PhotoTranscription imageSourceUrl={values.imageSourceUrl} full={entries.length >= 30} onAdd={draft => {
+                setEntries(current => addPhotoDraft(current, draft));
+                setValues(current => ({ ...current, inscribed: true }));
+              }} />
+            </Suspense>
+          </div>}
           {!values.inscribed && entries.length > 0 && <p role="alert" className="text-error">Keep Inscribed checked, or explicitly remove the entries below before saving this artifact as not inscribed.</p>}
           {entries.map((entry, index) => <fieldset key={entry.clientKey} className="rounded-xl border border-base-300 p-4 min-w-0">
             <legend className="px-2 font-medium">Inscription {index + 1}</legend>

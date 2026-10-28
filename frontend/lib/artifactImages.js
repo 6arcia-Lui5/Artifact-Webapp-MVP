@@ -19,7 +19,7 @@ export function metObjectId(value) {
 export async function resolveMetImage(objectId, signal) {
   const response = await fetch(
     `https://collectionapi.metmuseum.org/public/collection/v1/objects/${objectId}`,
-    { signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) },
+    { signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]), credentials: "omit", referrerPolicy: "no-referrer" },
   );
   if (!response.ok) throw new Error("The museum image is unavailable.");
   const object = await response.json();
