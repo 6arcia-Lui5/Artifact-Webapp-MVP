@@ -91,13 +91,17 @@ export const records = pgTable("records", {
     bibliography: text("bibliography"),
     imageCopyrightDetails: text("image_copyright_details"),
 
+    moderationStatus: text('moderation_status').notNull().default('pending'),
+    moderationNotes: text('moderation_notes'),
+    moderatedBy: text('moderated_by'),
+    moderatedAt: timestamp('moderated_at', { mode: 'date', withTimezone: true }),
     reviewStatus: text('review_status').notNull().default('draft'),
     reviewNotes: text('review_notes'), reviewerId: text('reviewer_id'),
-    reviewedAt: timestamp('reviewed_at', { mode: 'date' }),
+    reviewedAt: timestamp('reviewed_at', { mode: 'date', withTimezone: true }),
     dateStart: integer('date_start'), dateEnd: integer('date_end'),
     sourceProvenance: jsonb('source_provenance'),
     sourceProvider: text('source_provider'), sourceObjectId: text('source_object_id'),
-    sourceUrl: text('source_url'), sourceRetrievedAt: timestamp('source_retrieved_at', { mode: 'date' }),
+    sourceUrl: text('source_url'), sourceRetrievedAt: timestamp('source_retrieved_at', { mode: 'date', withTimezone: true }),
     revision: integer('revision').notNull().default(1),
     // Collection
     collectionId: uuid("collection_id"),
@@ -122,8 +126,8 @@ export const inscriptions = pgTable("inscriptions", {
     translation: text("translation"),
     script: text("script"),
 
-    serifsPresent: boolean("serifs_present").notNull(),
-    stopmarksPresent: boolean("stopmarks_present").notNull(),
+    serifsPresent: boolean("serifs_present"),
+    stopmarksPresent: boolean("stopmarks_present"),
 
     createdAt: timestamp("created_at", { mode: "date" })
         .notNull()

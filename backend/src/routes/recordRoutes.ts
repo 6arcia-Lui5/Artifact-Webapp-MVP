@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as recordController from "../controllers/recordController"
 import { requireApiAuth } from "../middleware/requireApiAuth";
 import * as objectTypeController from "../controllers/objectTypeController"
-import { upload } from "../middleware/upload"
+import { boundedUpload } from "../research/upload"
 
 const router = Router();
 
@@ -20,7 +20,7 @@ router.post(
 
 router.get("/search", recordController.searchRecords);
 
-router.post("/import", requireApiAuth, upload.single("file"), recordController.importRecords);
+router.post("/import", requireApiAuth, boundedUpload("file", 2), recordController.importRecords);
 
 router.get("/:id", recordController.getRecordById);
 

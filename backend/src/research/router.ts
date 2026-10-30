@@ -3,11 +3,15 @@ import { Router } from "express";
 import type { Pool } from "pg";
 import { getAuth } from "@clerk/express";
 import { ApiError, uuid, text, sourceUrl, parseSearch, camel, allColumns, writable, restoreInscriptions } from "./validation";
-import { transaction, owned, record, recordSelect, event } from "./database";
+import { transaction, owned, readable, record, recordSelect, event } from "./database";
+import { appendVisibility, canRead, catalogAccess, catalogContext, elevated, visibilitySql } from "./access";
+import { registerModeration } from "./moderation";
 import { registerImports } from "./imports";
 import { registerImages } from "./images";
-export function createResearchRouter(pool: Pool) {
+import type { Storage } from "./storage";
+export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
     const router = Router();
+    router.use(catalogContext(pool));
     router.use((req, res, next) => {
         const id = getAuth(req).userId;
         if (!id) {
@@ -18,7 +22,7 @@ export function createResearchRouter(pool: Pool) {
         next();
     });
     router.get("/records", async (req, res) => {
-        const s = parseSearch(req.query, res.locals.userId);
+        const s = appendVisibility(parseSearch(req.query, res.locals.userId), catalogAccess(res.locals.userId));
         const c = await pool.connect();
         try {
             await c.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
@@ -38,12 +42,17 @@ export function createResearchRouter(pool: Pool) {
     router.get("/facets", async (_req, res) => {
         const facets: Record<string, unknown> = {};
         for (const [key, table, column] of [["museums", "records", "museum_name"], ["materials", "records", "materials"], ["languages", "inscriptions", "language"], ["scripts", "inscriptions", "script"], ["places", "records", "production_place"], ["sourceProviders", "records", "source_provider"]])
-            facets[key] = (await pool.query(`SELECT DISTINCT ${column} AS value FROM ${table} WHERE ${column} IS NOT NULL AND ${column}<>'' AND length(${column})<=500 ORDER BY ${column} LIMIT 100`)).rows.map(r => r.value);
-        facets.objectTypes = (await pool.query("SELECT id,name FROM object_types WHERE length(name)<=500 ORDER BY name,id LIMIT 100")).rows;
+            facets[key] = (await pool.query(`SELECT DISTINCT f.${column} AS value FROM ${table} f
+                ${table === 'records' ? 'JOIN records r ON r.id=f.id' : 'JOIN records r ON r.id=f.record_id'}
+                WHERE ${visibilitySql('r', '$1')} AND f.${column} IS NOT NULL AND f.${column}<>''
+                AND length(f.${column})<=500 ORDER BY f.${column} LIMIT 100`, [catalogAccess().userId])).rows.map(r => r.value);
+        facets.objectTypes = (await pool.query(`SELECT o.id,o.name FROM object_types o WHERE length(o.name)<=500
+            AND EXISTS(SELECT 1 FROM records r WHERE r.object_type_id=o.id AND ${visibilitySql('r', '$1')})
+            ORDER BY o.name,o.id LIMIT 100`, [catalogAccess().userId])).rows;
         res.json(facets);
     });
     router.get("/export", async (req, res) => {
-        const search = parseSearch(req.query, res.locals.userId);
+        const search = appendVisibility(parseSearch(req.query, res.locals.userId), catalogAccess(res.locals.userId));
         const format = req.query.format ?? "json";
         if (format !== "json" && format !== "csv")
             throw new ApiError(400, "format must be csv or json");
@@ -62,10 +71,11 @@ export function createResearchRouter(pool: Pool) {
             c.release();
         }
     });
-    const collectionSelect = `SELECT c.*,c.user_id AS "userId",c.time_period AS "timePeriod",c.image_url AS "imageUrl",(SELECT count(*)::integer FROM research_memberships m WHERE m.collection_id=c.id) AS "recordCount" FROM collections c`;
-    router.get("/collections", async (_req, res) => res.json({ items: (await pool.query(collectionSelect + " ORDER BY c.\"createdAt\" DESC,c.id LIMIT 200")).rows }));
+    // Bound visibility values are supplied through a one-row CTE, shared by list/detail/count queries.
+    const collectionSelect = () => `WITH viewer AS (SELECT $1::text AS id) SELECT c.*,c.user_id AS "userId",c.time_period AS "timePeriod",c.image_url AS "imageUrl",(SELECT count(*)::integer FROM research_memberships m JOIN records r ON r.id=m.record_id WHERE m.collection_id=c.id AND ${visibilitySql('r', '(SELECT id FROM viewer)')}) AS "recordCount" FROM collections c`;
+    router.get("/collections", async (_req, res) => res.json({ items: (await pool.query(collectionSelect() + " ORDER BY c.\"createdAt\" DESC,c.id LIMIT 200", [catalogAccess().userId])).rows }));
     router.get("/collections/:id", async (req, res) => {
-        const r = (await pool.query(collectionSelect + " WHERE c.id=$1", [uuid(req.params.id)])).rows[0];
+        const r = (await pool.query(collectionSelect() + " WHERE c.id=$2", [catalogAccess().userId, uuid(req.params.id)])).rows[0];
         if (!r)
             throw new ApiError(404, "Collection not found");
         res.json(r);
@@ -85,7 +95,7 @@ export function createResearchRouter(pool: Pool) {
     router.post("/collections", async (req, res) => {
         const data = collectionData(req.body ?? {});
         const r = await pool.query(`INSERT INTO collections(title,description,time_period,image_url,user_id) VALUES($1,$2,$3,$4,$5) RETURNING id`, [data.title, data.description, data.time_period, data.image_url, res.locals.userId]);
-        res.status(201).json((await pool.query(collectionSelect + " WHERE c.id=$1", [r.rows[0].id])).rows[0]);
+        res.status(201).json((await pool.query(collectionSelect() + " WHERE c.id=$2", [catalogAccess().userId, r.rows[0].id])).rows[0]);
     });
     router.patch("/collections/:id", async (req, res) => {
         const id = uuid(req.params.id);
@@ -96,7 +106,7 @@ export function createResearchRouter(pool: Pool) {
             await owned(c, "collections", id, res.locals.userId, true);
             await c.query("UPDATE collections SET " + Object.keys(data).map((k, i) => `${k}=$${i + 2}`).join(",") + ",\"updatedAt\"=now() WHERE id=$1", [id, ...Object.values(data)]);
         });
-        res.json((await pool.query(collectionSelect + " WHERE c.id=$1", [id])).rows[0]);
+        res.json((await pool.query(collectionSelect() + " WHERE c.id=$2", [catalogAccess().userId, id])).rows[0]);
     });
     router.delete("/collections/:id", async (req, res) => {
         await transaction(pool, res.locals.userId, async (c) => {
@@ -114,10 +124,10 @@ export function createResearchRouter(pool: Pool) {
         ids.forEach(uuid);
         const result = await transaction(pool, res.locals.userId, async (c) => {
             await owned(c, "collections", id, res.locals.userId, true);
-            if (Number((await c.query("SELECT count(*) FROM records WHERE id=ANY($1::uuid[])", [Array.from(new Set(ids))])).rows[0].count) !== new Set(ids).size)
-                throw new ApiError(400, "Unknown record");
+            if (Number((await c.query(`SELECT count(*) FROM records r WHERE r.id=ANY($1::uuid[]) AND ${visibilitySql('r', '$2')}`, [Array.from(new Set(ids)), catalogAccess().userId])).rows[0].count) !== new Set(ids).size)
+                throw new ApiError(404, "Record not found");
             const added = await c.query("INSERT INTO research_memberships(collection_id,record_id) SELECT $1,unnest($2::uuid[]) ON CONFLICT DO NOTHING", [id, ids]);
-            return { added: added.rowCount, recordCount: Number((await c.query("SELECT count(*) FROM research_memberships WHERE collection_id=$1", [id])).rows[0].count) };
+            return { added: added.rowCount, recordCount: Number((await c.query(`SELECT count(*) FROM research_memberships m JOIN records r ON r.id=m.record_id WHERE m.collection_id=$1 AND ${visibilitySql('r', '$2')}`, [id, catalogAccess().userId])).rows[0].count) };
         });
         res.json(result);
     });
@@ -132,8 +142,9 @@ export function createResearchRouter(pool: Pool) {
     });
     router.get("/records/:id/history", async (req, res) => {
         const id = uuid(req.params.id);
-        await owned(pool, "records", id, res.locals.userId);
-        res.json({ items: (await pool.query("SELECT id,record_id AS \"recordId\",actor_id AS \"actorId\",created_at AS \"createdAt\",action,summary,CASE WHEN octet_length(snapshot::text)>65536 THEN NULL ELSE snapshot END AS snapshot,coalesce(octet_length(snapshot::text)>65536,false) AS \"snapshotOmitted\" FROM research_history WHERE record_id=$1 AND owner_id=$2 ORDER BY sequence DESC LIMIT 25", [id, res.locals.userId])).rows });
+        const current = await readable(pool, id, res.locals.userId);
+        if (current.user_id !== res.locals.userId && !elevated()) throw new ApiError(403, "History inspection requires owner or reviewer access");
+        res.json({ items: (await pool.query("SELECT id,record_id AS \"recordId\",actor_id AS \"actorId\",created_at AS \"createdAt\",action,summary,CASE WHEN octet_length(snapshot::text)>65536 THEN NULL ELSE snapshot END AS snapshot,coalesce(octet_length(snapshot::text)>65536,false) AS \"snapshotOmitted\" FROM research_history WHERE record_id=$1 AND owner_id=$2 ORDER BY sequence DESC LIMIT 25", [id, current.user_id])).rows });
     });
     router.patch("/records/:id/review", async (req, res) => {
         const id = uuid(req.params.id);
@@ -169,11 +180,11 @@ export function createResearchRouter(pool: Pool) {
             const current = await owned(c, "records", id, res.locals.userId, true);
             if (current.revision !== expected)
                 throw new ApiError(409, "Record changed; reload before restoring");
-            const h = (await c.query("SELECT snapshot FROM research_history WHERE id=$1 AND record_id=$2 AND owner_id=$3", [uuid(req.params.revisionId), id, res.locals.userId])).rows[0];
+            const h = (await c.query("SELECT snapshot FROM research_history WHERE id=$1 AND record_id=$2 AND owner_id=$3", [uuid(req.params.revisionId), id, current.user_id])).rows[0];
             if (!h?.snapshot?.record)
                 throw new ApiError(404, "Restorable snapshot not found");
             const data = camel(h.snapshot.record);
-            const keys = writable.filter(k => k in data);
+            const keys = writable.filter(k => k in data && !["imageSourceUrl", "imageType", "imageCopyrightDetails"].includes(k));
             await c.query("UPDATE records SET " + keys.map((k, i) => allColumns[k] + "=$" + (i + 2)).join(",") + " WHERE id=$1", [id, ...keys.map(k => data[k])]);
             const entries = restoreInscriptions(h.snapshot.inscriptions ?? []);
             await c.query("DELETE FROM inscriptions WHERE record_id=$1", [id]);
@@ -184,8 +195,9 @@ export function createResearchRouter(pool: Pool) {
         });
         res.json({ record: result });
     });
+    registerModeration(router, pool);
     registerImports(router, pool);
-    registerImages(router, pool);
+    registerImages(router, pool, imageStorage);
     router.use((error: any, _req: any, res: any, _next: any) => {
         if (res.headersSent)
             return;

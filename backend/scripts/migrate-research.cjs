@@ -22,7 +22,8 @@ function parseMigrationArgs(args) {
 }
 
 async function runMigration(options, connectionString) {
-  const sql = fs.readFileSync(path.join(__dirname, '../migrations/001_research_catalog.sql'), 'utf8');
+  const sql = ['001_research_catalog.sql', '002_catalog_moderation.sql']
+    .map(file => fs.readFileSync(path.join(__dirname, '../migrations', file), 'utf8')).join('\n');
   const searchPath = `SET LOCAL search_path TO "${options.schema}", pg_catalog`;
   if (options.preview) {
     process.stdout.write(`BEGIN;\n${searchPath};\n${sql}\nCOMMIT;\n`);
@@ -40,7 +41,7 @@ async function runMigration(options, connectionString) {
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [options.schema + ':research_catalog_001']);
     await client.query(sql);
     await client.query('COMMIT');
-    console.log('Applied research_catalog_001 to ' + options.schema);
+    console.log('Applied research_catalog_001 and catalog_moderation_002 to ' + options.schema);
   } catch (error) {
     if (client) await client.query('ROLLBACK').catch(() => {});
     throw error;

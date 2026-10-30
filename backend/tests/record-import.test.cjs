@@ -81,3 +81,60 @@ test("a missing required field identifies the row and prevents a partial import"
   assert.equal(objectTypeWrites, 0);
   assert.equal(inserted, undefined);
 });
+
+test("legacy CSV and XLSX reject over 500 rows before object-type or artifact writes", async () => {
+  for (const format of ["csv", "xlsx"]) {
+    const res = await importRows(Array.from({ length: 501 }, () => row), format);
+    assert.equal(res.statusCode, 413, JSON.stringify(res.body));
+    assert.equal(objectTypeWrites, 0);
+    assert.equal(inserted, undefined);
+  }
+});
+
+test("legacy workbook expansion is checked before decoding or writes", async () => {
+  inserted = undefined;
+  objectTypeWrites = 0;
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([row]), "Artifacts");
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const central = buffer.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02]));
+  assert(central >= 0);
+  buffer.writeUInt32LE(9 * 1024 * 1024, central + 24);
+  const response = { status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+  await importRecords({ file: { originalname: "bomb.xlsx", buffer } }, response);
+  assert.equal(response.statusCode, 413);
+  assert.equal(objectTypeWrites, 0);
+  assert.equal(inserted, undefined);
+});
+
+test("legacy imports reject sparse truncated CSV instead of writing a decoded prefix", async () => {
+  inserted = undefined;
+  objectTypeWrites = 0;
+  const sheet = XLSX.utils.json_to_sheet([row]);
+  const csv = XLSX.utils.sheet_to_csv(sheet) + '\n'.repeat(600) + XLSX.utils.sheet_to_csv(sheet);
+  const response = { status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+  await importRecords({ file: { originalname: 'sparse.csv', buffer: Buffer.from(csv) } }, response);
+  assert.equal(response.statusCode, 413);
+  assert.equal(objectTypeWrites, 0);
+  assert.equal(inserted, undefined);
+});
+
+test("legacy multipart route rejects oversized files before import writes", async () => {
+  const express = require('express');
+  const http = require('node:http');
+  const app = express();
+  app.use('/api/records', require('../dist/routes/recordRoutes').default);
+  app.use((error, _req, res, _next) => res.status(error.status ?? 500).json({ error: error.message }));
+  const server = http.createServer(app);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  inserted = undefined;
+  objectTypeWrites = 0;
+  try {
+    const form = new FormData();
+    form.set('file', new Blob([Buffer.alloc(4 * 1024 * 1024 + 1, 65)]), 'large.csv');
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/records/import`, { method: 'POST', body: form });
+    assert.equal(response.status, 413, await response.clone().text());
+    assert.equal(objectTypeWrites, 0);
+    assert.equal(inserted, undefined);
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});

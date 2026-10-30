@@ -40,7 +40,7 @@ export function camel(row: any): any {
         return row;
     return Object.fromEntries(Object.entries(row).filter(([k]) => k !== "search_vector").map(([k, v]) => [Object.entries({ ...allColumns, ...inscriptionColumns }).find(([, s]) => s === k)?.[0] ?? k, v]));
 }
-export const writable = Object.keys(columns).filter(k => !["id", "userId", "createdAt", "updatedAt", "collectionId", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "sourceProvenance", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt", "revision"].includes(k));
+export const writable = Object.keys(columns).filter(k => !["id", "userId", "createdAt", "updatedAt", "collectionId", "moderationStatus", "moderationNotes", "moderatedBy", "moderatedAt", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "sourceProvenance", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt", "revision"].includes(k));
 export function recordData(input: any): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     for (const k of writable)
@@ -79,7 +79,7 @@ export function parseSearch(q: any, userId: string) {
     const search = text(q.q, 300);
     if (search) {
         const p = bind(search);
-        conditions.push(`(r.search_vector @@ plainto_tsquery('simple',${p}) OR EXISTS(SELECT 1 FROM inscriptions i WHERE i.record_id=r.id AND to_tsvector('simple',coalesce(i.content,'')||' '||coalesce(i.translation,'')) @@ plainto_tsquery('simple',${p})))`);
+        conditions.push(`r.search_vector @@ plainto_tsquery('simple',${p})`);
     }
     const filters: Record<string, string> = { objectTypeId: "object_type_id", museum: "museum_name", material: "materials", place: "production_place", reviewStatus: "review_status", sourceProvider: "source_provider" };
     for (const [k, c] of Object.entries(filters))
@@ -123,8 +123,8 @@ export function restoreInscriptions(snapshot: unknown): Array<{
     language: string | null;
     script: string | null;
     translation: string | null;
-    serifsPresent: boolean;
-    stopmarksPresent: boolean;
+    serifsPresent: boolean | null;
+    stopmarksPresent: boolean | null;
 }> {
     if (!Array.isArray(snapshot) || snapshot.length > 30)
         throw new ApiError(400, "Invalid inscription snapshot");
@@ -139,7 +139,7 @@ export function restoreInscriptions(snapshot: unknown): Array<{
             entry[key] = i[key];
         }
         for (const key of ["serifsPresent", "stopmarksPresent"]) {
-            if (typeof i[key] !== "boolean")
+            if (i[key] !== null && typeof i[key] !== "boolean")
                 throw new ApiError(400, "Invalid inscription snapshot");
             entry[key] = i[key];
         }

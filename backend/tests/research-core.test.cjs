@@ -70,7 +70,8 @@ test('real CSV and XLSX parsing supports aliases/mapping, preserves nulls and ne
     assert.equal(x.rows[0].data.itemName, 'Vase');
 });
 test('spreadsheet bounds and protected mappings reject unsafe or ambiguous identity fields', () => {
-    for (const mapping of [{ Title: 'userId' }, { Title: 'sourceObjectId' }, { Title: 'sourceProvenance' }, { Title: 'revision' }, { Title: 'reviewStatus' }, { Title: 'id' }])
+    for (const mapping of [{ Title: 'userId' }, { Title: 'sourceObjectId' }, { Title: 'sourceProvenance' }, { Title: 'revision' }, { Title: 'reviewStatus' }, { Title: 'id' },
+        ...['moderationStatus','moderationNotes','moderatedBy','moderatedAt','role'].map(field=>({Title:field}))])
         assert.throws(() => spreadsheetRows(Buffer.from('Title\nA'), 'a.csv', mapping));
     assert.throws(() => spreadsheetRows(Buffer.from('Title,Title\nA,B'), 'a.csv'));
     assert.throws(() => spreadsheetRows(Buffer.from('Title\n' + Array(501).fill('A').join('\n')), 'a.csv'));
@@ -96,6 +97,9 @@ test('museum normalization uses factual provenance and signed dates, never descr
     assert.equal(cle.data.inscriptions.length, 1);
     assert.equal(cle.data.inscriptions[0].content, 'D M');
     assert.equal(cle.data.inscriptions[0].language, null);
+    assert.equal(cle.data.inscriptions[0].script, null);
+    assert.equal(cle.data.inscriptions[0].serifsPresent, null);
+    assert.equal(cle.data.inscriptions[0].stopmarksPresent, null);
     assert.equal(cle.source.license, 'CC0');
     assert.throws(() => normalizeMuseum('met', '1', { objectID: 2, title: 'A' }), /match/);
     assert.throws(() => normalizeMuseum('met', '1', { objectID: 1, title: 'A', primaryImageSmall: 'https://evil.example/image.jpg' }), /untrusted/);

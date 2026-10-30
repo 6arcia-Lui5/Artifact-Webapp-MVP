@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 let written;
 const queries = {
   createRecord: async data => { written = data; return data; },
-  getRecordById: async () => ({ id: "record", userId: "owner" }),
+  getRecordById: async () => ({ id: "record", userId: "owner", moderationStatus: "approved" }),
   updateRecord: async (_id, data) => { written = data; return data; },
 };
 for (const [name, exports] of [
@@ -35,7 +35,9 @@ test("creating a record uses the signed-in owner and server-managed identity", a
   const res = response();
   await controller.createRecord({
     authenticatedUser: "owner",
-    body: { ...recordData, userId: "someone-else", id: "forged", createdAt: "forged", updatedAt: "forged" },
+    body: { ...recordData, userId: "someone-else", id: "forged", createdAt: "forged", updatedAt: "forged",
+      moderationStatus:"approved",moderationNotes:"Forged",moderatedBy:"admin",moderatedAt:"forged",
+      moderation_status:"approved",role:"admin" },
   }, res);
   assert.equal(res.statusCode, 201);
   assert.deepEqual(written, { ...recordData, userId: "owner" });

@@ -33,7 +33,7 @@ before(async () => {
     NODE_ENV: "test", ALLOWED_CLERK_USER_IDS: "approved", ML_SERVICE_URL: modelUrl,
   } });
   stub("../dist/db/queries.js", { getRecordById: async () => storedRecord });
-  stub("../dist/db/index.js", { db: {} });
+  stub("../dist/db/index.js", { db: {}, pool: { query: async () => ({rows:[],rowCount:0}) } });
   stub("@clerk/express", {
     clerkMiddleware: () => (_req, _res, next) => next(),
     getAuth: req => ({ userId: req.headers["x-test-user"] || null }),

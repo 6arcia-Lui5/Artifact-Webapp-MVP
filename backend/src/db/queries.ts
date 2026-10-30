@@ -1,8 +1,20 @@
-import { db } from "./index";
-import { and, eq, notInArray } from "drizzle-orm";
+import { catalogAccess, elevated, visibilitySql } from "../research/access";
+import { recordSelect } from "../research/database";
+import { ApiError, camel } from "../research/validation";
+import { db, pool } from "./index";
+import { and, eq, notInArray, or, sql } from "drizzle-orm";
 import type { InscriptionInput } from "../lib/inscriptionValidation";
 import { users, records, collections, type NewUser, type NewRecord, type NewCollection, type NewInscription, objectTypes, inscriptions } from "./schema";
 
+
+const visibleRecords = (r: Pick<typeof records, 'moderationStatus' | 'userId'> = records) => {
+    const access = catalogAccess();
+    return elevated(access) ? sql`true` : or(eq(r.moderationStatus, 'approved'), eq(r.userId, access.userId));
+};
+const setActor = async (tx: any) => {
+    const actor = catalogAccess().userId;
+    if (actor) await tx.execute(sql`SELECT set_config('research.actor', ${actor}, true)`);
+};
 
 // User queries
 export const createUser = async (data: NewUser) => {
@@ -47,21 +59,26 @@ export const createCollection = async(data:NewCollection) => {
 
 //gets collection info for cards
 export const getAllCollections = async() => {
-    return db.query.collections.findMany({ 
-        with: { records: true },
-        orderBy: (collections, {desc}) => [desc(collections.createdAt)] 
-    });
+    return readableCollections();
 }
 
 //Used in collection page for all collection details
 export const getCollectionById = async(id: string) => {
-    return db.query.collections.findFirst({ 
-        where: eq(collections.id, id), 
-        with: {
-            records: true,
-        },
-    });
+    return (await readableCollections(id))[0];
 };
+
+async function readableCollections(id?: string) {
+    const access = catalogAccess();
+    const visible = visibilitySql('r', '$1', access);
+    const membership = 'EXISTS(SELECT 1 FROM research_memberships m WHERE m.collection_id=c.id AND m.record_id=r.id)';
+    const result = await pool.query(`SELECT c.*,c.user_id AS "userId",c.time_period AS "timePeriod",c.image_url AS "imageUrl",
+        (SELECT count(*)::int FROM records r WHERE ${membership} AND ${visible}) AS "recordCount",
+        coalesce((SELECT json_agg(row_to_json(e)) FROM (${recordSelect} WHERE ${membership} AND ${visible}
+            ORDER BY r.created_at DESC,r.id DESC LIMIT 100) e),'[]') AS records
+        FROM collections c ${id ? 'WHERE c.id=$2' : ''} ORDER BY c."createdAt" DESC,c.id LIMIT 200`,
+        id ? [access.userId, id] : [access.userId]);
+    return result.rows.map(c => ({ ...c, records: c.records.map(camel) }));
+}
 
 export const deleteCollection = async(id: string) => {
     const existingCollection = await getCollectionById(id);
@@ -100,31 +117,39 @@ export const createObjectType = async (name: string) => {
 
 // Record queries=====================================
 export const createRecord = async(data:NewRecord) => {
-    const [record] = await db.insert(records).values(data).returning();
-    return record;
+    return db.transaction(async tx => {
+        await setActor(tx);
+        const [record] = await tx.insert(records).values(data).returning();
+        return record;
+    });
 };
 
 export const createRecordWithInscriptions = async (data: NewRecord, entries: InscriptionInput[]) => {
     return db.transaction(async tx => {
+        await setActor(tx);
         const [record] = await tx.insert(records).values(data).returning();
         const saved = entries.length ? await tx.insert(inscriptions).values(entries.map(entry => ({
             content: entry.content, language: entry.language, script: entry.script,
             translation: entry.translation, serifsPresent: entry.serifsPresent,
             stopmarksPresent: entry.stopmarksPresent, recordId: record.id,
         }))).returning() : [];
-        return { ...record, inscriptions: saved };
+        const [current] = await tx.select().from(records).where(eq(records.id, record.id));
+        return { ...current, inscriptions: saved };
     });
 };
 
-export const updateRecordWithInscriptions = async (id: string, data: Partial<NewRecord>, entries: InscriptionInput[]) => {
+export const updateRecordWithInscriptions = async (id: string, data: Partial<NewRecord>, entries: InscriptionInput[], expectedRevision?: number) => {
     return db.transaction(async tx => {
+        await setActor(tx);
         // Serialize edits to the parent and its children as one unit.
         const [existing] = await tx.select().from(records).where(eq(records.id, id)).for("update");
-        if (!existing) throw new Error("Record not found");
+        if (!existing) throw new ApiError(404, "Record not found");
+        if (expectedRevision !== undefined && existing.revision !== expectedRevision)
+            throw new ApiError(409, "This artifact changed. Inspect the latest record before retrying your saved edits.");
         const savedEntries = await tx.select().from(inscriptions).where(eq(inscriptions.recordId, id));
         const knownIds = new Set(savedEntries.map(entry => entry.id));
         if (entries.some(entry => entry.id && !knownIds.has(entry.id)))
-            throw new Error("An inscription changed while this record was being edited");
+            throw new ApiError(409, "An inscription changed. Inspect the latest record before retrying your saved edits.");
         const [record] = await tx.update(records).set({ ...data, updatedAt: new Date() }).where(eq(records.id, id)).returning();
         const retained = entries.flatMap(entry => entry.id ? [entry.id] : []);
         await tx.delete(inscriptions).where(retained.length
@@ -140,15 +165,18 @@ export const updateRecordWithInscriptions = async (id: string, data: Partial<New
             }
         }
         const saved = await tx.select().from(inscriptions).where(eq(inscriptions.recordId, id));
-        return { ...record, inscriptions: saved };
+        const [current] = await tx.select().from(records).where(eq(records.id, id));
+        return { ...current, inscriptions: saved };
     });
 };
 
 //gets record info for cards
 export const getAllRecords = async() => {
-    return db.query.records.findMany({ 
+    return db.query.records.findMany({
+        where: visibleRecords(),
+        limit: 200,
         with: { user: true },
-        orderBy: (records, {desc}) => [desc(records.createdAt)] 
+        orderBy: (records, {desc}) => [desc(records.createdAt)]
     });
 }
 
@@ -156,8 +184,9 @@ export const searchRecords = async (query: string) => {
     const searchTerm = `%${query}%`;
 
     return db.query.records.findMany({
+        limit: 200,
         where: (records, { or, ilike }) =>
-            or(
+            and(visibleRecords(), or(
                 ilike(records.itemName, searchTerm),
                 ilike(records.hhwIdentifier, searchTerm),
                 ilike(records.museumName, searchTerm),
@@ -182,7 +211,7 @@ export const searchRecords = async (query: string) => {
                 ilike(records.imageryDescription, searchTerm),
                 ilike(records.bibliography, searchTerm),
                 ilike(records.imageCopyrightDetails, searchTerm)
-            ),
+            )),
 
         with: {
             user: true,
@@ -202,7 +231,7 @@ export const searchRecords = async (query: string) => {
 // Get record by ID
 export const getRecordById = async (id: string) => {
     return db.query.records.findFirst({
-        where: eq(records.id, id),
+        where: and(eq(records.id, id), visibleRecords()),
 
         with: {
             user: true,
@@ -216,7 +245,8 @@ export const getRecordById = async (id: string) => {
 // Get records belonging to a user
 export const getRecordsByUserId = async (userId: string) => {
     return db.query.records.findMany({
-        where: eq(records.userId, userId),
+        where: and(eq(records.userId, userId), visibleRecords()),
+        limit: 200,
 
         with: {
             user: true,
@@ -233,7 +263,8 @@ export const getRecordsByUserId = async (userId: string) => {
 // Update record
 export const updateRecord = async (
     id: string,
-    data: Partial<NewRecord>
+    data: Partial<NewRecord>,
+    expectedRevision?: number
 ) => {
     const existingRecord = await getRecordById(id);
 
@@ -241,13 +272,15 @@ export const updateRecord = async (
         throw new Error(`Record with id ${id} not found`);
     }
 
-    const [record] = await db
-        .update(records)
-        .set(data)
-        .where(eq(records.id, id))
-        .returning();
-
-    return record;
+    return db.transaction(async tx => {
+        await setActor(tx);
+        const [existing] = await tx.select().from(records).where(eq(records.id, id)).for("update");
+        if (!existing) throw new ApiError(404, "Record not found");
+        if (expectedRevision !== undefined && existing.revision !== expectedRevision)
+            throw new ApiError(409, "This artifact changed. Inspect the latest record before retrying your saved edits.");
+        const [record] = await tx.update(records).set(data).where(eq(records.id, id)).returning();
+        return record;
+    });
 };
 
 // Delete record
@@ -259,6 +292,7 @@ export const deleteRecord = async (id: string) => {
     }
 
     return db.transaction(async tx => {
+        await setActor(tx);
         // Match the editor's parent-first lock order before removing children.
         await tx.select().from(records).where(eq(records.id, id)).for("update");
         await tx.delete(inscriptions).where(eq(inscriptions.recordId, id));
@@ -304,12 +338,10 @@ export const deleteInscription = async (id: string) => {
 //Batch==========================================================
 
 export const createRecordsBatch = async (data: NewRecord[]) => {
-    const recordsCreated = await db
-        .insert(records)
-        .values(data)
-        .returning();
-
-    return recordsCreated;
+    return db.transaction(async tx => {
+        await setActor(tx);
+        return tx.insert(records).values(data).returning();
+    });
 };
 
 export const getOrCreateObjectType = async (name: string) => {

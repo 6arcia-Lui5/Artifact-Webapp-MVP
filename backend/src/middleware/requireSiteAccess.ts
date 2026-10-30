@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/express";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ENV } from "../config/env";
+import { configureApprovedAccounts } from "./siteAccounts";
 
 type DevelopmentAccount = { userId?: string };
 
@@ -24,6 +25,9 @@ function approvedUserIds(): Set<string> {
 }
 
 const allowedIds = approvedUserIds();
+configureApprovedAccounts(allowedIds);
+export const isApprovedUserId = (id: string) => allowedIds.has(id);
+export const approvedAccountIds = () => [...allowedIds];
 
 export function requireSiteAccess(req: Request, res: Response, next: NextFunction) {
   const userId = getAuth(req).userId;

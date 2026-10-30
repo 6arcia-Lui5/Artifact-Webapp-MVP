@@ -24,8 +24,8 @@ function fixture() {
         };
         if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK' || sql.includes('set_config'))
             return { rows, rowCount };
-        if (sql.startsWith('SELECT * FROM records'))
-            row({ id, user_id: 'owner' });
+        if ((sql.startsWith('SELECT * FROM records')||sql.startsWith('SELECT r.* FROM records')))
+            row({ id, user_id: 'owner', moderation_status:'approved' });
         else if (sql.startsWith('SELECT 1 FROM records'))
             row({ id });
         else if (sql.startsWith('UPDATE records'))

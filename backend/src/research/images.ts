@@ -3,7 +3,8 @@ import type { Pool } from "pg";
 import { boundedUpload } from "./upload";
 import { randomUUID } from "node:crypto";
 import { ApiError, uuid, sourceUrl, text } from "./validation";
-import { transaction, owned, event } from "./database";
+import { transaction, owned, readable, event } from "./database";
+import { catalogAccess, visibilitySql } from "./access";
 import { Storage, createStorage, storageLimit } from "./storage";
 import { MAX_FILE_BYTES, validateImage } from "./imageValidation";
 import { imageLocation } from "./imageDto";
@@ -66,12 +67,11 @@ export function registerImages(router: Router, pool: Pool, injected?: Storage) {
     });
     router.get("/records/:id/images", async (req, res) => {
         const id = uuid(req.params.id);
-        if (!(await pool.query("SELECT 1 FROM records WHERE id=$1", [id])).rowCount)
-            throw new ApiError(404, "Record not found");
-        res.json({ items: (await pool.query(select + " WHERE i.record_id=$1 ORDER BY i.is_primary DESC,i.created_at,i.id LIMIT 100", [id])).rows.map(publicImage) });
+        await readable(pool, id, res.locals.userId);
+        res.json({ items: (await pool.query(select + ` WHERE i.record_id=$1 AND EXISTS(SELECT 1 FROM records r WHERE r.id=i.record_id AND ${visibilitySql('r', '$2', catalogAccess(res.locals.userId))}) ORDER BY i.is_primary DESC,i.created_at,i.id LIMIT 100`, [id, res.locals.userId])).rows.map(publicImage) });
     });
     router.get("/records/:id/images/:imageId/file", async (req, res) => {
-        const r = (await pool.query(select + " WHERE i.record_id=$1 AND i.id=$2", [uuid(req.params.id), uuid(req.params.imageId)])).rows[0];
+        const r = (await pool.query(select + ` WHERE i.record_id=$1 AND i.id=$2 AND EXISTS(SELECT 1 FROM records r WHERE r.id=i.record_id AND ${visibilitySql('r', '$3', catalogAccess(res.locals.userId))})`, [uuid(req.params.id), uuid(req.params.imageId), res.locals.userId])).rows[0];
         if (!r?.blob_id)
             throw new ApiError(404, "Image not found");
         if (r.driver !== storage().driver)
@@ -175,7 +175,7 @@ export function registerImages(router: Router, pool: Pool, injected?: Storage) {
         await transaction(pool, res.locals.userId, async (c) => {
             await owned(c, "records", id, res.locals.userId, true);
             if (req.body.isPrimary)
-                await c.query("UPDATE research_images SET is_primary=false WHERE record_id=$1", [id]);
+                await c.query("UPDATE research_images SET is_primary=false WHERE record_id=$1 AND is_primary AND id<>$2", [id, imageId]);
             const r = await c.query("UPDATE research_images SET " + Object.keys(changes).map((k, i) => k + "=$" + (i + 3)).join(",") + " WHERE record_id=$1 AND id=$2", [id, imageId, ...Object.values(changes)]);
             if (!r.rowCount)
                 throw new ApiError(404, "Image not found");

@@ -50,6 +50,9 @@ export function boundedUpload(field: string, fields: number): RequestHandler {
                 return;
             if (error) {
                 cleanup();
+                if (error instanceof multer.MulterError)
+                    return next(new ApiError(error.code === "LIMIT_FILE_SIZE" ? 413 : 400,
+                        error.code === "LIMIT_FILE_SIZE" ? "File exceeds 4 MiB" : "Invalid multipart fields"));
                 return next(error);
             }
             res.once("finish", cleanup);

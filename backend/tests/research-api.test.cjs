@@ -18,6 +18,7 @@ function fixture() {
             rows = r ? [structuredClone(r)] : [];
             rowCount = rows.length;
         };
+        if (sql.startsWith('SELECT role FROM research_roles')) return {rows:[],rowCount:0};
         if (['BEGIN', 'COMMIT', 'ROLLBACK'].includes(sql) || sql.includes('set_config') || sql.includes('pg_advisory_xact_lock'))
             return { rows, rowCount };
         if (sql.startsWith('INSERT INTO research_images') || sql.startsWith('INSERT INTO research_history') || sql.startsWith('INSERT INTO inscriptions') || sql.startsWith('UPDATE records SET updated_at')) {
@@ -45,11 +46,11 @@ function fixture() {
             j.status = v[2];
             row(j);
         }
-        else if (sql.startsWith('SELECT id FROM records WHERE source_provider='))
+        else if (sql.startsWith('SELECT id,user_id,moderation_status FROM records WHERE source_provider='))
             row(state.records.find(r => r.source_provider === v[0] && r.source_object_id === v[1]));
-        else if (sql.startsWith('SELECT id FROM records WHERE lower(museum_name)='))
+        else if (sql.startsWith('SELECT id,user_id,moderation_status FROM records WHERE lower(museum_name)='))
             row(state.records.find(r => r.museum_name?.toLowerCase() === v[0].toLowerCase() && r.museum_number === v[1]));
-        else if (sql.startsWith('SELECT id FROM records WHERE hhw_identifier='))
+        else if (sql.startsWith('SELECT id,user_id,moderation_status FROM records WHERE hhw_identifier='))
             row(state.records.find(r => r.hhw_identifier === v[0]));
         else if (sql.startsWith('INSERT INTO records(')) {
             if (failAfterRecords !== null && --failAfterRecords === 0) {
@@ -62,12 +63,13 @@ function fixture() {
             state.writes++;
             row(r);
         }
+        else if (sql.startsWith('SELECT r.id FROM records r WHERE r.id=ANY')) { rows=state.records.filter(r=>v[0].includes(r.id)&&(r.user_id===v[1]||r.moderation_status==='approved')).map(r=>({id:r.id}));rowCount=rows.length;}
         else if (sql.startsWith('SELECT * FROM collections WHERE id='))
             row(state.collections.find(c => c.id === v[0]));
         else if (sql.startsWith('SELECT * FROM records WHERE id='))
             row(state.records.find(r => r.id === v[0]));
-        else if (sql.startsWith('SELECT c.*')) {
-            const items = state.collections.filter(c => !v[0] || c.id === v[0]).map(c => ({ ...c, userId: c.user_id, recordCount: state.members.filter(m => m.collection_id === c.id).length }));
+        else if (sql.startsWith('WITH viewer AS')) {
+            const items = state.collections.filter(c => !v[1] || c.id === v[1]).map(c => ({ ...c, userId: c.user_id, recordCount: state.members.filter(m => m.collection_id === c.id).length }));
             rows = structuredClone(items);
             rowCount = rows.length;
         }
@@ -76,7 +78,7 @@ function fixture() {
             state.collections.push(c);
             row(c);
         }
-        else if (sql.startsWith('SELECT count(*) FROM records WHERE id='))
+        else if (sql.startsWith('SELECT count(*) FROM records r WHERE r.id='))
             row({ count: state.records.filter(r => v[0].includes(r.id)).length });
         else if (sql.startsWith('INSERT INTO research_memberships')) {
             for (const id of new Set(v[1]))
@@ -85,7 +87,7 @@ function fixture() {
                     rowCount++;
                 }
         }
-        else if (sql.startsWith('SELECT count(*) FROM research_memberships'))
+        else if (sql.startsWith('SELECT count(*) FROM research_memberships m'))
             row({ count: state.members.filter(m => m.collection_id === v[0]).length });
         else if (sql.startsWith('UPDATE records SET collection_id=NULL')) {
             rowCount = 0;
@@ -209,7 +211,7 @@ test('collections have creator metadata, accept readable foreign records and rej
     assert.equal(r.status, 201);
     const collection = await r.json();
     assert.equal(collection.userId, 'owner');
-    const foreign = { id: randomUUID(), user_id: 'reader', item_name: 'Foreign artifact' };
+    const foreign = { id: randomUUID(), user_id: 'reader', moderation_status:'approved', item_name: 'Foreign artifact' };
     pool.state.records.push(foreign);
     assert.equal((await request('/collections/' + collection.id + '/records', { method: 'POST', ...json({ recordIds: [foreign.id] }) }, 'reader')).status, 403);
     const added = await request('/collections/' + collection.id + '/records', { method: 'POST', ...json({ recordIds: [foreign.id, foreign.id] }) });
@@ -225,7 +227,7 @@ test('unowned legacy collections stay readable and immutable; restore refuses mi
     pool.state.collections.push(legacy);
     assert.equal((await request('/collections/' + legacy.id)).status, 200);
     assert.equal((await request('/collections/' + legacy.id, { method: 'PATCH', ...json({ title: 'Claim' }) })).status, 403);
-    const record = { id: randomUUID(), user_id: 'owner', revision: 5 };
+    const record = { id: randomUUID(), user_id: 'owner', revision: 5, moderation_status:'approved' };
     pool.state.records.push(record);
     const restore = '/records/' + record.id + '/history/' + randomUUID() + '/restore';
     assert.equal((await request(restore, { method: 'POST', ...json({}) })).status, 400);

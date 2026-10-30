@@ -50,9 +50,16 @@ const aliases: Record<string, string> = {
     "date/culture/time period": "dateCulturePeriod",
     "image source url": "imageSourceUrl",
 };
+// sheetRows truncates decoding, so reject its sentinel row even when sparse
+// blank rows would disappear from sheet_to_json. Never import a silent prefix.
+export function checkSheetRows(sheet: XLSX.WorkSheet | undefined) {
+    const range = sheet?.["!fullref"] ?? sheet?.["!ref"];
+    if (range && XLSX.utils.decode_range(range).e.r > 500)
+        throw new ApiError(413, "At most 500 data rows; remove blank row gaps or split the file");
+}
 const protectedFields = new Set([
     "id", "userId", "createdAt", "updatedAt", "collectionId", "revision",
-    "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt",
+    "moderationStatus", "moderationNotes", "moderatedBy", "moderatedAt", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt",
     "sourceProvenance", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt",
 ]);
 const inscriptionFields = new Set([
@@ -90,6 +97,7 @@ export function spreadsheetRows(buffer: Buffer, filename: string, mappingInput: 
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet)
         throw new ApiError(400, "Empty spreadsheet");
+    checkSheetRows(sheet);
     const grid = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null, raw: false, blankrows: false });
     if (grid.length > 501)
         throw new ApiError(413, "At most 500 data rows");
@@ -174,8 +182,8 @@ export function spreadsheetRows(buffer: Buffer, filename: string, mappingInput: 
                     language: literal.inscriptionLanguage.trim(),
                     script: literal.inscriptionScript.trim(),
                     translation: literal.inscriptionTranslation ?? null,
-                    serifsPresent: false,
-                    stopmarksPresent: false,
+                    serifsPresent: null,
+                    stopmarksPresent: null,
                 }];
             }
         }

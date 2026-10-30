@@ -84,7 +84,7 @@ async function main() {
       }
       const typeId = randomUUID(), ownId = randomUUID(), foreignId = randomUUID();
       await isolated.query("INSERT INTO object_types (id, name) VALUES ($1,$2)", [typeId, "Pendant"]);
-      for (const account of accounts.slice(0, 2)) {
+      for (const account of accounts) {
         await isolated.query('INSERT INTO users (id,email,name) VALUES ($1,$2,$3)', [account.userId, account.email, account.name]);
       }
       for (const [id, owner, name, image, inscribed] of [
@@ -98,6 +98,11 @@ async function main() {
       }
       const example = JSON.parse(fs.readFileSync(path.join(root, "ml/demo/examples.json"), "utf8"))[0];
       await isolated.query("INSERT INTO inscriptions (record_id,content,language,translation,script,serifs_present,stopmarks_present) VALUES ($1,$2,'Greek','','Greek',false,false)", [ownId, example.text]);
+      if (fs.existsSync(path.join(backend, "migrations/002_catalog_moderation.sql"))) {
+        // Only these generated legacy-readable fixtures are pre-approved. Newly
+        // submitted browser/API records must still enter the pending queue.
+        await isolated.query("UPDATE records SET moderation_status='approved',moderation_notes='Synthetic fixture approved for isolated regression checks',moderated_by=$1,moderated_at=now() WHERE id=ANY($2::uuid[])", [accounts[4].userId, [ownId, foreignId]]);
+      }
       fs.writeFileSync(path.join(local, "workflow-fixture.json"), JSON.stringify({ ownId, foreignId, schemaName }));
 
       // Use the real query functions against this isolated database to prove
@@ -105,8 +110,10 @@ async function main() {
       const { drizzle } = require("drizzle-orm/node-postgres");
       const dbModule = require.resolve("../dist/db/index.js");
       const actualSchema = require("../dist/db/schema.js");
-      require.cache[dbModule] = { id: dbModule, filename: dbModule, loaded: true, exports: { db: drizzle(isolated, { schema: actualSchema }) } };
+      require.cache[dbModule] = { id: dbModule, filename: dbModule, loaded: true, exports: { db: drizzle(isolated, { schema: actualSchema }), pool: isolated } };
       const queries = require("../dist/db/queries.js");
+      const { withCatalogAccess } = require("../dist/research/access.js");
+      await withCatalogAccess({ userId: accounts[0].userId, role: 'contributor' }, async () => {
       const before = (await isolated.query("SELECT count(*)::int AS n FROM records")).rows[0].n;
       const data = { userId: accounts[0].userId, itemName: "Must roll back", objectTypeId: typeId, museumName: "Demo", museumCity: "Demo", museumCountry: "Demo", museumNumber: "ROLLBACK", dateCulturePeriod: "100 CE", materials: "Gold", dimensions: "10 cm", inscribed: true };
       const badEntry = { content: null, language: "Latin", script: "Latin", translation: "", serifsPresent: false, stopmarksPresent: false };
@@ -120,9 +127,10 @@ async function main() {
       assert.equal((await isolated.query("SELECT count(*)::int AS n FROM inscriptions WHERE record_id=$1", [temporary.id])).rows[0].n, 0);
       assert.equal((await isolated.query("SELECT count(*)::int AS n FROM records WHERE id=$1", [temporary.id])).rows[0].n, 0);
       console.log("Real Postgres rollback and linked-deletion checks passed; public artifact tables were not written.");
+      });
     } finally { await isolated.end(); }
 
-    const env = { ...process.env, DATABASE_URL: url.toString(), NODE_ENV: "development", PORT: "3307", FRONTEND_URL: frontendOrigin, ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://127.0.0.1:8007", ALLOWED_CLERK_USER_IDS: accounts.map(account => account.userId).join(","), IMAGE_STORAGE_DRIVER: process.env.IMAGE_STORAGE_DRIVER || "local", IMAGE_LOCAL_DIRECTORY: path.join(local, "workflow-images", schemaName), IMAGE_STORAGE_MAX_BYTES: "20000000" };
+    const env = { ...process.env, DATABASE_URL: url.toString(), NODE_ENV: "development", PORT: "3307", FRONTEND_URL: frontendOrigin, ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://127.0.0.1:8007", ALLOWED_CLERK_USER_IDS: accounts.map(account => account.userId).join(","), CATALOG_ADMIN_USER_IDS: accounts[4].userId, IMAGE_STORAGE_DRIVER: process.env.IMAGE_STORAGE_DRIVER || "local", IMAGE_LOCAL_DIRECTORY: path.join(local, "workflow-images", schemaName), IMAGE_STORAGE_MAX_BYTES: "20000000" };
     delete env.VERCEL;
     serve(path.join(backend, "dist/index.js"), [], { cwd: backend, env });
     await ready(apiOrigin + "/api/access", 401);

@@ -5,6 +5,7 @@ import { ApiError, uuid, allColumns, columns } from "./validation";
 import { transaction, event } from "./database";
 import { museumRows, sources } from "./sources";
 import { spreadsheetRows } from "./spreadsheet";
+import { canRead, catalogAccess, visibilitySql } from "./access";
 const upload = boundedUpload("file", 2);
 function identityOf(d: any): string | null {
     return d.sourceProvider && d.sourceObjectId ? d.sourceProvider + ':' + d.sourceObjectId : d.museumName && d.museumNumber ? d.museumName.toLowerCase() + ':' + d.museumNumber : d.hhwIdentifier ? 'hhw:' + d.hhwIdentifier : null;
@@ -16,6 +17,21 @@ function progress(rows: any[]) {
 function view(job: any) {
     const rows = job.payload.rows, p = progress(rows);
     return { id: job.id, sourceType: job.source_type, sourceProvider: job.source_provider, status: job.status, ...job.payload, summary: { total: rows.length, valid: rows.filter((r: any) => !r.errors.length).length, invalid: p.errors, duplicates: rows.filter((r: any) => r.duplicate).length }, progress: p };
+}
+async function safeView(pool: Pool, job: any, userId: string) {
+    const copy = structuredClone(job);
+    const ids = copy.payload.rows.flatMap((r: any) => r.duplicateRecordId ? [r.duplicateRecordId] : []);
+    if (ids.length) {
+        const visible = new Set((await pool.query(`SELECT r.id FROM records r WHERE r.id=ANY($1::uuid[])
+            AND ${visibilitySql('r', '$2', catalogAccess(userId))}`, [ids, userId])).rows.map(r => r.id));
+        for (const row of copy.payload.rows) {
+            if (row.duplicateRecordId && !visible.has(row.duplicateRecordId)) {
+                delete row.duplicateRecordId;
+                row.warnings = ["Existing identity is unavailable or pending; it will be skipped."];
+            }
+        }
+    }
+    return view(copy);
 }
 async function getJob(c: any, id: string, user: string, lock = false) {
     const j = (await c.query(`SELECT * FROM research_imports WHERE id=$1 AND user_id=$2 AND created_at>now()-interval '30 days'${lock ? " FOR UPDATE" : ""}`, [id, user])).rows[0];
@@ -74,24 +90,24 @@ export function registerImports(router: Router, pool: Pool) {
                     seen.set(identity, row.rowNumber);
                 let match;
                 if (d.sourceProvider && d.sourceObjectId)
-                    match = (await c.query("SELECT id FROM records WHERE source_provider=$1 AND source_object_id=$2", [d.sourceProvider, d.sourceObjectId])).rows[0];
+                    match = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE source_provider=$1 AND source_object_id=$2", [d.sourceProvider, d.sourceObjectId])).rows[0];
                 else if (d.museumName && d.museumNumber)
-                    match = (await c.query("SELECT id FROM records WHERE lower(museum_name)=lower($1) AND museum_number=$2 ORDER BY id LIMIT 1", [d.museumName, d.museumNumber])).rows[0];
+                    match = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE lower(museum_name)=lower($1) AND museum_number=$2 ORDER BY id LIMIT 1", [d.museumName, d.museumNumber])).rows[0];
                 else if (d.hhwIdentifier) {
                     row.warnings.push("HHW matching is not a globally unique source identity; verify manually.");
-                    match = (await c.query("SELECT id FROM records WHERE hhw_identifier=$1 ORDER BY id LIMIT 1", [d.hhwIdentifier])).rows[0];
+                    match = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE hhw_identifier=$1 ORDER BY id LIMIT 1", [d.hhwIdentifier])).rows[0];
                 }
                 if (match) {
                     row.duplicate = true;
-                    row.duplicateRecordId = match.id;
-                    row.warnings.push("Possible existing artifact; it will be skipped.");
+                    if (canRead(match, catalogAccess(res.locals.userId))) row.duplicateRecordId = match.id;
+                    row.warnings.push(canRead(match, catalogAccess(res.locals.userId)) ? "Possible existing artifact; it will be skipped." : "Existing identity is unavailable or pending; it will be skipped.");
                 }
             }
             return (await c.query("INSERT INTO research_imports(user_id,source_type,source_provider,payload) VALUES($1,$2,$3,$4) RETURNING *", [res.locals.userId, sourceType, provider, JSON.stringify(payload)])).rows[0];
         });
-        res.status(201).json(view(job));
+        res.status(201).json(await safeView(pool, job, res.locals.userId));
     });
-    router.get("/imports/:id", async (req, res) => res.json(view(await getJob(pool, uuid(req.params.id), res.locals.userId))));
+    router.get("/imports/:id", async (req, res) => res.json(await safeView(pool, await getJob(pool, uuid(req.params.id), res.locals.userId), res.locals.userId)));
     router.post("/imports/:id/commit", async (req, res) => {
         if (req.body?.skipDuplicates !== undefined && req.body.skipDuplicates !== true)
             throw new ApiError(400, "Duplicates can only be skipped");
@@ -115,15 +131,16 @@ export function registerImports(router: Router, pool: Pool) {
                 const d = { ...row.data, sourceProvenance: { ...row.source, importJobId: job.id, rowNumber: row.rowNumber, ...(job.payload.mapping ? { mapping: job.payload.mapping } : {}) } };
                 let duplicate;
                 if (d.sourceProvider && d.sourceObjectId)
-                    duplicate = (await c.query("SELECT id FROM records WHERE source_provider=$1 AND source_object_id=$2", [d.sourceProvider, d.sourceObjectId])).rows[0];
+                    duplicate = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE source_provider=$1 AND source_object_id=$2", [d.sourceProvider, d.sourceObjectId])).rows[0];
                 else if (d.museumName && d.museumNumber)
-                    duplicate = (await c.query("SELECT id FROM records WHERE lower(museum_name)=lower($1) AND museum_number=$2 LIMIT 1", [d.museumName, d.museumNumber])).rows[0];
+                    duplicate = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE lower(museum_name)=lower($1) AND museum_number=$2 LIMIT 1", [d.museumName, d.museumNumber])).rows[0];
                 else if (d.hhwIdentifier)
-                    duplicate = (await c.query("SELECT id FROM records WHERE hhw_identifier=$1 LIMIT 1", [d.hhwIdentifier])).rows[0];
+                    duplicate = (await c.query("SELECT id,user_id,moderation_status FROM records WHERE hhw_identifier=$1 LIMIT 1", [d.hhwIdentifier])).rows[0];
                 if (duplicate) {
                     row.state = "skipped";
                     row.duplicate = true;
-                    row.duplicateRecordId = duplicate.id;
+                    if (canRead(duplicate, catalogAccess(res.locals.userId))) row.duplicateRecordId = duplicate.id;
+                    else row.warnings.push("Existing identity is unavailable or pending; it was skipped.");
                     continue;
                 }
                 if (d.objectTypeName && !d.objectTypeId) {
@@ -144,7 +161,7 @@ export function registerImports(router: Router, pool: Pool) {
                         continue;
                     }
                 }
-                const allowed = Object.keys(columns).filter(k => !["id", "userId", "createdAt", "updatedAt", "collectionId", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "revision"].includes(k)).concat(["dateStart", "dateEnd", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt"]);
+                const allowed = Object.keys(columns).filter(k => !["id", "userId", "createdAt", "updatedAt", "collectionId", "moderationStatus", "moderationNotes", "moderatedBy", "moderatedAt", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "revision"].includes(k)).concat(["dateStart", "dateEnd", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt"]);
                 const keys = Array.from(new Set(allowed)).filter(k => k in d);
                 const inserted = await c.query("INSERT INTO records(user_id," + keys.map(k => allColumns[k]).join(",") + ") VALUES($1," + keys.map((_, i) => "$" + (i + 2)).join(",") + ") ON CONFLICT DO NOTHING RETURNING id", [res.locals.userId, ...keys.map(k => d[k])]);
                 if (!inserted.rowCount) {
@@ -153,7 +170,7 @@ export function registerImports(router: Router, pool: Pool) {
                 }
                 const id = inserted.rows[0].id;
                 for (const e of d.inscriptions ?? [])
-                    await c.query("INSERT INTO inscriptions(record_id,content,language,translation,script,serifs_present,stopmarks_present) VALUES($1,$2,$3,$4,$5,false,false)", [id, e.content, e.language, e.translation, e.script]);
+                    await c.query("INSERT INTO inscriptions(record_id,content,language,translation,script,serifs_present,stopmarks_present) VALUES($1,$2,$3,$4,$5,$6,$7)", [id, e.content, e.language, e.translation, e.script, e.serifsPresent ?? null, e.stopmarksPresent ?? null]);
                 if (d.imageSourceUrl) {
                     await c.query('INSERT INTO research_images(record_id,source_url,credit,license) VALUES($1,$2,$3,$4)', [id, d.imageSourceUrl, row.source?.credit ?? null, row.source?.license ?? null]);
                     await event(c, id, res.locals.userId, 'image_attach', 'Imported source image link');

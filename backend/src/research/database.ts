@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 import { ApiError, camel } from "./validation";
 import { primaryImageSelect } from "./imageDto";
+import { canRead, catalogAccess, isAdmin, visibilitySql } from "./access";
 export type Connection = Pick<PoolClient, "query">;
 export async function transaction<T>(pool: Pool, actor: string, fn: (c: PoolClient) => Promise<T>): Promise<T> {
     const c = await pool.connect();
@@ -24,7 +25,9 @@ export async function owned(c: Connection, table: "records" | "collections", id:
     const result = await c.query(`SELECT * FROM ${table} WHERE id=$1${lock ? " FOR UPDATE" : ""}`, [id]);
     if (!result.rows[0])
         throw new ApiError(404, "Not found");
-    if (result.rows[0].user_id !== owner)
+    if (table === "records" && !canRead(result.rows[0], catalogAccess(owner)))
+        throw new ApiError(404, "Record not found");
+    if (result.rows[0].user_id !== owner && !(table === "records" && isAdmin()))
         throw new ApiError(403, "Only the owner may change this item");
     return result.rows[0];
 }
@@ -40,7 +43,14 @@ export const recordSelect = `SELECT r.*,row_to_json(o) AS "objectType",${primary
 export async function record(c: Connection, id: string) {
     return camel((await c.query(recordSelect + " WHERE r.id=$1", [id])).rows[0]);
 }
+export async function readable(c: Connection, id: string, userId: string) {
+    const access = catalogAccess(userId);
+    const result = await c.query(`SELECT r.* FROM records r WHERE r.id=$1 AND ${visibilitySql("r", "$2", access)}`, [id, access.userId]);
+    if (!result.rows[0]) throw new ApiError(404, "Record not found");
+    return result.rows[0];
+}
 export async function event(c: Connection, id: string, owner: string, action: string, summary: string) {
     await c.query("UPDATE records SET updated_at=now() WHERE id=$1", [id]);
-    await c.query(`INSERT INTO research_history(record_id,owner_id,actor_id,action,summary) VALUES($1,$2,$2,$3,$4)`, [id, owner, action, summary]);
+    await c.query(`INSERT INTO research_history(record_id,owner_id,actor_id,action,summary)
+        SELECT id,user_id,$2,$3,$4 FROM records WHERE id=$1`, [id, owner, action, summary]);
 }

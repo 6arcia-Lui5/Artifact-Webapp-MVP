@@ -42,8 +42,8 @@ test('CSV and XLSX explicit literal mappings preserve Unicode, newlines and null
                 language: 'Greek',
                 script: 'Greek',
                 translation,
-                serifsPresent: false,
-                stopmarksPresent: false,
+                serifsPresent: null,
+                stopmarksPresent: null,
             }]);
         for (const field of Object.values(mapping))
             assert.equal(field in row.data, false);
@@ -131,6 +131,7 @@ test('missing research tables or columns return informative HTTP503 without data
     const filename = require.resolve('@clerk/express');
     const previous = require.cache[filename];
     require.cache[filename] = { id: filename, filename, loaded: true, exports: { getAuth: () => ({ userId: 'owner' }) } };
+    require('../dist/middleware/siteAccounts').configureApprovedAccounts(['owner']);
     const { createResearchRouter } = require('../dist/research/router');
     if (previous)
         require.cache[filename] = previous;
