@@ -11,4 +11,3 @@ export default function SessionQueryProvider({ children }) {
   const { userId } = useAuth();
   return <SessionCache key={userId || "guest"}>{children}</SessionCache>;
 }
-

@@ -10,4 +10,3 @@ export function requireApiAuth(req: Request, res: Response, next: NextFunction) 
   }
   next();
 }
-
