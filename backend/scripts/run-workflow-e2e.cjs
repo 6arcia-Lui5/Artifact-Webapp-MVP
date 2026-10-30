@@ -67,6 +67,21 @@ async function main() {
     const isolated = new Pool({ connectionString: url.toString(), max: 2, connectionTimeoutMillis: 10000 });
     try {
       assert.equal((await isolated.query("SELECT current_schema() AS name")).rows[0].name, schemaName);
+      // Exercise the explicit research migration only in this newly generated schema.
+      const migrations = path.join(backend, "migrations");
+      if (fs.existsSync(migrations)) {
+        const client = await isolated.connect();
+        try {
+          await client.query("BEGIN");
+          await client.query(`SET LOCAL search_path TO ${identifier(schemaName)}, pg_catalog`);
+          const files = fs.readdirSync(migrations).filter(file => /^\d+_[a-z_]+\.sql$/.test(file)).sort();
+          for (let pass = 0; pass < 2; pass += 1) {
+            for (const file of files) await client.query(fs.readFileSync(path.join(migrations, file), "utf8"));
+          } // Reapplying must preserve data and schema.
+          await client.query("COMMIT");
+        } catch (error) { await client.query("ROLLBACK"); throw error; }
+        finally { client.release(); }
+      }
       const typeId = randomUUID(), ownId = randomUUID(), foreignId = randomUUID();
       await isolated.query("INSERT INTO object_types (id, name) VALUES ($1,$2)", [typeId, "Pendant"]);
       for (const account of accounts.slice(0, 2)) {
@@ -94,20 +109,20 @@ async function main() {
       const queries = require("../dist/db/queries.js");
       const before = (await isolated.query("SELECT count(*)::int AS n FROM records")).rows[0].n;
       const data = { userId: accounts[0].userId, itemName: "Must roll back", objectTypeId: typeId, museumName: "Demo", museumCity: "Demo", museumCountry: "Demo", museumNumber: "ROLLBACK", dateCulturePeriod: "100 CE", materials: "Gold", dimensions: "10 cm", inscribed: true };
-      const badEntry = { content: "D M", language: "Latin", script: null, translation: "", serifsPresent: false, stopmarksPresent: false };
+      const badEntry = { content: null, language: "Latin", script: "Latin", translation: "", serifsPresent: false, stopmarksPresent: false };
       await assert.rejects(() => queries.createRecordWithInscriptions(data, [badEntry]));
       assert.equal((await isolated.query("SELECT count(*)::int AS n FROM records")).rows[0].n, before);
       const originalChild = (await isolated.query("SELECT id FROM inscriptions WHERE record_id=$1", [ownId])).rows[0].id;
       await assert.rejects(() => queries.updateRecordWithInscriptions(ownId, { itemName: "Must roll back" }, [{ ...badEntry, id: originalChild }]));
       assert.equal((await isolated.query("SELECT item_name FROM records WHERE id=$1", [ownId])).rows[0].item_name, "Sample catalog artifact");
-      const temporary = await queries.createRecordWithInscriptions(data, [{ ...badEntry, script: "Latin" }]);
+      const temporary = await queries.createRecordWithInscriptions(data, [{ ...badEntry, content: "D M" }]);
       await queries.deleteRecord(temporary.id);
       assert.equal((await isolated.query("SELECT count(*)::int AS n FROM inscriptions WHERE record_id=$1", [temporary.id])).rows[0].n, 0);
       assert.equal((await isolated.query("SELECT count(*)::int AS n FROM records WHERE id=$1", [temporary.id])).rows[0].n, 0);
       console.log("Real Postgres rollback and linked-deletion checks passed; public artifact tables were not written.");
     } finally { await isolated.end(); }
 
-    const env = { ...process.env, DATABASE_URL: url.toString(), NODE_ENV: "development", PORT: "3307", FRONTEND_URL: frontendOrigin, ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://127.0.0.1:8007", ALLOWED_CLERK_USER_IDS: accounts.map(account => account.userId).join(",") };
+    const env = { ...process.env, DATABASE_URL: url.toString(), NODE_ENV: "development", PORT: "3307", FRONTEND_URL: frontendOrigin, ML_SERVICE_URL: process.env.ML_SERVICE_URL || "http://127.0.0.1:8007", ALLOWED_CLERK_USER_IDS: accounts.map(account => account.userId).join(","), IMAGE_STORAGE_DRIVER: process.env.IMAGE_STORAGE_DRIVER || "local", IMAGE_LOCAL_DIRECTORY: path.join(local, "workflow-images", schemaName), IMAGE_STORAGE_MAX_BYTES: "20000000" };
     delete env.VERCEL;
     serve(path.join(backend, "dist/index.js"), [], { cwd: backend, env });
     await ready(apiOrigin + "/api/access", 401);
@@ -124,6 +139,11 @@ async function main() {
     if (created && /^artifact_e2e_\d+_[0-9a-f]{8}$/.test(schemaName)) {
       await pool.query(`DROP SCHEMA ${identifier(schemaName)} CASCADE`);
       console.log(`Removed disposable schema ${schemaName}.`);
+    }
+    const imageRoot = path.resolve(local, "workflow-images");
+    const imageDirectory = path.resolve(imageRoot, schemaName);
+    if (imageDirectory.startsWith(imageRoot + path.sep) && /^artifact_e2e_\d+_[0-9a-f]{8}$/.test(path.basename(imageDirectory))) {
+      fs.rmSync(imageDirectory, { recursive: true, force: true });
     }
     await pool.end();
   }

@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, integer, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, integer, timestamp, uuid, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
@@ -12,6 +12,7 @@ export const users = pgTable("users", {
 });
 
 export const collections = pgTable("collections", {
+    userId: text("user_id"),
     id: uuid("id").defaultRandom().primaryKey(),
 
     title: text("title").notNull(),
@@ -45,18 +46,18 @@ export const records = pgTable("records", {
     hhwIdentifier: text("hhw_identifier"),
 
     // Object type
-    objectTypeId: uuid("object_type_id").notNull(),
+    objectTypeId: uuid("object_type_id"),
 
     // Museum / Institute
-    museumName: text("museum_name").notNull(),
+    museumName: text("museum_name"),
     museumDepartment: text("museum_department"),
-    museumCity: text("museum_city").notNull(),
-    museumCountry: text("museum_country").notNull(),
-    museumNumber: text("museum_number").notNull(),
+    museumCity: text("museum_city"),
+    museumCountry: text("museum_country"),
+    museumNumber: text("museum_number"),
     museumDescription: text("museum_description"),
 
     // Dating / Origin
-    dateCulturePeriod: text("date_culture_period").notNull(),
+    dateCulturePeriod: text("date_culture_period"),
     datingBasis: text("dating_basis"),
     issuingAuthority: text("issuing_authority"),
     productionPlace: text("production_place"),
@@ -67,18 +68,18 @@ export const records = pgTable("records", {
     excavationInformation: text("excavation_information"),
 
     // Physical characteristics
-    materials: text("materials").notNull(),
+    materials: text("materials"),
     technique: text("technique"),
-    dimensions: text("dimensions").notNull(),
+    dimensions: text("dimensions"),
     thickness: text("thickness"),
     weight: text("weight"),
     scientificTesting: text("scientific_testing"),
 
     // Inscription
-    inscribed: boolean("inscribed").notNull().default(false),
+    inscribed: boolean("inscribed").default(false),
 
     // Imagery
-    imagery: boolean("imagery").notNull().default(false),
+    imagery: boolean("imagery").default(false),
     imageryDescription: text("imagery_description"),
     imageryInscriptionPlacement: text("imagery_inscription_placement"),
 
@@ -90,6 +91,14 @@ export const records = pgTable("records", {
     bibliography: text("bibliography"),
     imageCopyrightDetails: text("image_copyright_details"),
 
+    reviewStatus: text('review_status').notNull().default('draft'),
+    reviewNotes: text('review_notes'), reviewerId: text('reviewer_id'),
+    reviewedAt: timestamp('reviewed_at', { mode: 'date' }),
+    dateStart: integer('date_start'), dateEnd: integer('date_end'),
+    sourceProvenance: jsonb('source_provenance'),
+    sourceProvider: text('source_provider'), sourceObjectId: text('source_object_id'),
+    sourceUrl: text('source_url'), sourceRetrievedAt: timestamp('source_retrieved_at', { mode: 'date' }),
+    revision: integer('revision').notNull().default(1),
     // Collection
     collectionId: uuid("collection_id"),
 
@@ -109,9 +118,9 @@ export const inscriptions = pgTable("inscriptions", {
     recordId: uuid("record_id").notNull(),
 
     content: text("content").notNull(),
-    language: text("language").notNull(),
-    translation: text("translation").notNull(),
-    script: text("script").notNull(),
+    language: text("language"),
+    translation: text("translation"),
+    script: text("script"),
 
     serifsPresent: boolean("serifs_present").notNull(),
     stopmarksPresent: boolean("stopmarks_present").notNull(),

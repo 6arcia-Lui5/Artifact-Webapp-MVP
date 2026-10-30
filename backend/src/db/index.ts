@@ -7,7 +7,10 @@ if (!ENV.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set in environment variables")
 }
 
-const pool = new Pool({ connectionString: ENV.DATABASE_URL });
+const databaseSchema = process.env.DATABASE_SCHEMA;
+if (databaseSchema && (!/^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/.test(databaseSchema) || /^pg_/i.test(databaseSchema) || databaseSchema.toLowerCase() === 'information_schema')) throw new Error('Invalid DATABASE_SCHEMA');
+export const pool = new Pool({ connectionString: ENV.DATABASE_URL,
+    ...(databaseSchema ? { options: '-c search_path=' + databaseSchema + ',pg_catalog' } : {}) });
 
 
 pool.on("connect", () => {

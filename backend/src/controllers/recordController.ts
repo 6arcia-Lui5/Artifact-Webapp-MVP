@@ -5,13 +5,13 @@ import * as XLSX from "xlsx"
 import { records, type NewRecord } from "../db/schema";
 import { getTableColumns } from "drizzle-orm";
 import { readInscriptions } from "../lib/inscriptionValidation";
-import { normalizeImportHeader, recordValidationError } from "../lib/recordValidation";
+import { normalizeImportHeader, recordValidationError, normalizeDraftFields } from "../lib/recordValidation";
 
 // Record identity, ownership and timestamps are managed by the server.
 const recordColumns = new Set(Object.keys(getTableColumns(records)));
 const editableRecordData = (body: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(body).filter(([key]) =>
-        recordColumns.has(key) && !["id", "userId", "createdAt", "updatedAt"].includes(key))) as
+        recordColumns.has(key) && !["id", "userId", "createdAt", "updatedAt", "collectionId", "revision", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "sourceProvenance", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt"].includes(key))) as
         Omit<NewRecord, "id" | "userId" | "createdAt" | "updatedAt">;
 
 // Field map (Excel to DB)
@@ -169,8 +169,10 @@ export const createRecord = async (req: Request, res: Response) => {
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const payload = { ...editableRecordData(req.body || {}), userId };
-        const validationError = recordValidationError(payload);
+        const editable = editableRecordData(req.body || {});
+        const payload = { ...(req.body?.saveAsDraft === true ? normalizeDraftFields(editable) : editable), userId };
+        if (req.body?.saveAsDraft !== undefined && typeof req.body.saveAsDraft !== 'boolean') return res.status(400).json({ error: 'saveAsDraft must be true or false.' });
+        const validationError = recordValidationError(payload, { draft: req.body?.saveAsDraft === true });
         if (validationError) return res.status(400).json({ error: validationError });
 
         const inscriptionInput = readInscriptions(req.body || {});
@@ -242,9 +244,14 @@ export const updateRecord = async (req: Request, res: Response) => {
         if (existing.userId !== userId)
             return res.status(403).json({ error: "You can only update your own records" });
 
-        const payload = editableRecordData(req.body || {});
-        const validationError = recordValidationError(payload, { partial: true });
+        const editable = editableRecordData(req.body || {});
+        const payload = req.body?.saveAsDraft === true ? { ...normalizeDraftFields(editable), reviewStatus: 'draft' } : editable;
+        if (req.body?.saveAsDraft !== undefined && typeof req.body.saveAsDraft !== 'boolean') return res.status(400).json({ error: 'saveAsDraft must be true or false.' });
+        const validationError = recordValidationError(payload, { partial: true, draft: req.body?.saveAsDraft === true });
         if (validationError) return res.status(400).json({ error: validationError });
+        const dateStart = payload.dateStart === undefined ? existing.dateStart : payload.dateStart;
+        const dateEnd = payload.dateEnd === undefined ? existing.dateEnd : payload.dateEnd;
+        if (dateStart != null && dateEnd != null && dateStart > dateEnd) return res.status(400).json({ error: 'Date start must not follow date end.' });
         const inscriptionInput = readInscriptions({ ...req.body, inscribed: payload.inscribed ?? existing.inscribed });
         if (inscriptionInput.error) return res.status(400).json({ error: inscriptionInput.error });
         const knownIds = new Set((existing.inscriptions || []).map(entry => entry.id));

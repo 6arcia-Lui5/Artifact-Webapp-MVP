@@ -9,22 +9,24 @@
     "test": "node --test tests/*.test.cjs",
     "test:workflow": "npm run build && node scripts/run-workflow-e2e.cjs",
     "db:push": "drizzle-kit push",
-    "dev:accounts": "node scripts/seed-dev-accounts.cjs"
+    "dev:accounts": "node scripts/seed-dev-accounts.cjs",
+    "db:migrate:research": "node scripts/migrate-research.cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1160.0",
     "@clerk/express": "^1.7.60",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "0.45.4",
     "express": "^5.2.1",
     "multer": "^2.4.0",
     "pg": "^8.16.3",
     "sharp": "0.35.5",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

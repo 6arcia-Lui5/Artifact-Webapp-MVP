@@ -12,6 +12,9 @@ import mlRoutes from "./routes/mlRoutes";
 import transcriptionRoutes from "./routes/transcriptionRoutes";
 import museumPhotoRoutes from "./routes/museumPhotoRoutes";
 
+import { pool } from './db';
+import { createResearchRouter } from './research/router';
+
 const app = express()
 
 app.use(cors({ origin: ENV.FRONTEND_URL, credentials: true })); //credentials:ture allows frontend to send cookies to backend so we can authenticate user
@@ -35,6 +38,7 @@ app.get("/", (req, res) => {
     });
 });
 
+app.use("/api/research", createResearchRouter(pool));
 app.use("/api/users", userRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/records", recordRoutes);
