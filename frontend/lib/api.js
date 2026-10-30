@@ -1,5 +1,24 @@
 import api from "./axios";
 
+export const getTranscriptionStatus = async (signal) => {
+    const { data } = await api.get("/transcription/status", { timeout: 10000, signal });
+    return data;
+};
+
+export const transcribePhoto = async (file, language, signal, compare = false) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    formData.append("language", language);
+    const { data } = await api.post(compare ? "/transcription/pipeline" : "/transcription", formData, { timeout: 120000, signal });
+    return data;
+};
+
+export const getMuseumTranscriptionPhoto = async (objectId, signal) => {
+    const { data } = await api.get(`/transcription/museum-image/${objectId}`, { responseType: "blob", timeout: 25000, signal });
+    return new File([data], 'museum-inscription.jpg', { type: 'image/jpeg' });
+};
+
+
 // Users API
 export const syncUser = async (userData) => {
     const { data } = await api.post("/users/sync", userData);
@@ -35,10 +54,15 @@ export const createRecord = async (recordData) => {
     return data;
 }
 
-export const updateRecord = async (id, ...recordData) => {
+export const updateRecord = async (id, recordData) => {
     const { data } = await api.put(`/records/${id}`, recordData);
     return data;
 }
+
+export const checkRecordMl = async (id) => {
+    const { data } = await api.get(`/ml/records/${id}/check`, { timeout: 15000 });
+    return data;
+};
 
 export const deleteRecord = async (id) => {
     const { data } = await api.delete(`/records/${id}`);
@@ -57,7 +81,7 @@ export const getCollectionById = async (id) => {
 }
 
 export const createCollection = async (recordData) => {
-    const { data } = await api.post("/records", recordData);
+    const { data } = await api.post("/collections", recordData);
     return data;
 }
 
@@ -75,28 +99,11 @@ export const importRecords = async (file) => {
 }
 
 export const getObjectTypes = async () => {
-  const response = await fetch("/api/object-types");
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch object types");
-  }
-
-  return response.json();
+  const { data } = await api.get("/object-types");
+  return data;
 };
 
 export const createObjectType = async (name) => {
-  const response = await fetch("/api/object-types", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ name }),
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || "Failed to create object type");
-  }
-
-  return response.json();
+  const { data } = await api.post("/object-types", { name });
+  return data;
 };

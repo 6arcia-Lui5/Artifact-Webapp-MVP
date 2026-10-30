@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { createRecord, deleteRecord, getAllRecords, getMyRecords, getRecordById, importRecords, searchRecords, getObjectTypes } from "../lib/api"
+import { createRecord, deleteRecord, getAllRecords, getMyRecords, getRecordById, importRecords, searchRecords, getObjectTypes, updateRecord } from "../lib/api"
 
 export const useRecords = () => {
     const result = useQuery({queryKey: ["records"], queryFn:getAllRecords});
@@ -7,7 +7,14 @@ export const useRecords = () => {
 }
 
 export const useCreateRecord = () => {
-    return useMutation({mutationFn:createRecord})
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn:createRecord,
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["records"]})
+            queryClient.invalidateQueries({queryKey: ["myRecords"]})
+        }
+    })
 }
 
 export const useRecord = (id) => {
@@ -18,12 +25,28 @@ export const useRecord = (id) => {
     })
 }
 
-export const useDeleteRecord = (id) => {
+export const useUpdateRecord = (id) => {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: values => updateRecord(id, values),
+        onSuccess: async () => {
+            await Promise.all([
+                client.invalidateQueries({ queryKey: ["record", id] }),
+                client.invalidateQueries({ queryKey: ["records"] }),
+                client.invalidateQueries({ queryKey: ["myRecords"] }),
+            ]);
+        },
+    });
+};
+
+export const useDeleteRecord = () => {
     const queryClient = useQueryClient()
     return useMutation({
         mutationFn:deleteRecord,
-        onSuccess: () => {
+        onSuccess: (_data, id) => {
+            queryClient.invalidateQueries({queryKey: ["records"]})
             queryClient.invalidateQueries({queryKey: ["myRecords"]})
+            queryClient.removeQueries({queryKey: ["record", id]})
         }
     });
 }

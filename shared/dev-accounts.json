@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Developer 1",
+    "email": "dev1@example.com",
+    "verificationEmail": "artifact.dev1+clerk_test@example.com"
+  },
+  {
+    "name": "Developer 2",
+    "email": "dev2@example.com",
+    "verificationEmail": "artifact.dev2+clerk_test@example.com"
+  },
+  {
+    "name": "Developer 3",
+    "email": "dev3@example.com",
+    "verificationEmail": "artifact.dev3+clerk_test@example.com"
+  },
+  {
+    "name": "Developer 4",
+    "email": "dev4@example.com",
+    "verificationEmail": "artifact.dev4+clerk_test@example.com"
+  },
+  {
+    "name": "Developer 5",
+    "email": "dev5@example.com",
+    "verificationEmail": "artifact.dev5+clerk_test@example.com"
+  }
+]

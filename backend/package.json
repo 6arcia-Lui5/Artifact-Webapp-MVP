@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
-    "db:push": "drizzle-kit push"
+    "test": "node --test tests/*.test.cjs",
+    "test:workflow": "npm run build && node scripts/run-workflow-e2e.cjs",
+    "db:push": "drizzle-kit push",
+    "dev:accounts": "node scripts/seed-dev-accounts.cjs"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +23,7 @@
     "express": "^5.2.1",
     "multer": "^2.4.0",
     "pg": "^8.16.3",
+    "sharp": "0.35.5",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

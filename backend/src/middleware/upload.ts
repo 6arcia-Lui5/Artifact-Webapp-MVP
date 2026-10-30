@@ -5,7 +5,7 @@ const storage = multer.memoryStorage();
 export const upload = multer({
     storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10 MB
+        fileSize: 4 * 1024 * 1024, // Leave room for multipart headers under the hosted request limit.
     },
     fileFilter: (_req, file, cb) => {
         const allowedMimeTypes = [

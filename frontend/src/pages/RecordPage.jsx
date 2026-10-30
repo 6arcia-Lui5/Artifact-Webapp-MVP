@@ -4,7 +4,12 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
-import { deleteRecord } from '../../lib/api'
+import { recordFields } from '../components/recordFields'
+import ArtifactImage from '../components/ArtifactImage'
+import { sourceUrl } from '../../lib/artifactImages'
+import InscriptionDetails from '../components/InscriptionDetails'
+import MlReview from '../components/MlReview'
+
 
 function RecordPage() {
   const { id } = useParams();
@@ -71,17 +76,16 @@ function RecordPage() {
       {/* IMAGE */}
       <div className='card bg-base-300'>
         <figure className='p-4'>
-          <img
-            src={record.imageUrl}
-            alt={record.title}
-            className='rounded-xl w-full h-80 object-cover'
-          />
+          <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+            className='rounded-xl w-full h-80 object-cover' />
         </figure>
+        {sourceUrl(record.imageSourceUrl) && <a href={sourceUrl(record.imageSourceUrl)}
+          target='_blank' rel='noreferrer' className='link px-4 pb-4'>View image source</a>}
       </div>
 
       <div className='card bg-base-300'>
         <div className='card-body'>
-          <h1 className='card-title text-2xl'>{record.title}</h1>
+          <h1 className='card-title text-2xl'>{record.itemName}</h1>
 
           <div className='flex flex-wrap gap-4 text-sm text-base-content/60 my-2'>
             <div className='flex items-center gap-1'>
@@ -96,7 +100,7 @@ function RecordPage() {
 
           <div className='divider my-2'></div>
 
-          <p className='text-base-content/80 leading-relaxed'>{record.description}</p>
+          <p className='text-base-content/80 leading-relaxed'>{record.museumDescription}</p>
 
           {record.user && (
             <>
@@ -121,17 +125,25 @@ function RecordPage() {
       </div>
     </div>
 
+    <InscriptionDetails entries={record.inscriptions} />
+    <MlReview key={`${record.id}-${record.updatedAt}`} record={record} />
+
     {/* Relevant Details */}
     <div className='card bg-base-300'>
       <div className='card-body'>
         <h1 className='card-title text-2xl font-bold'>Overview</h1>
         <div className='divider my-2'></div>
-          <p className='text-base-content/80 leading-relaxed'>Time Period: {record.date}</p>
-          <p className='text-base-content/80 leading-relaxed'>Material: {record.material}</p>
-          <p className='text-base-content/80 leading-relaxed'>Dimensions: {record.dimensions}</p>
-          <p className='text-base-content/80 leading-relaxed'>Classification: {record.classification}</p>
-          <p className='text-base-content/80 leading-relaxed'>Credit: {record.credit}</p>
-          <p className='text-base-content/80 leading-relaxed'>Collection: {record.collection}</p>
+          <dl className='grid gap-3'>
+            {recordFields.filter(field => !field.condition || record[field.condition.field] === field.condition.value).map(({ key, label, type }) => {
+              const value = type === 'object-type' ? record.objectType?.name : record[key];
+              if (value === null || value === undefined || value === '') return null;
+              return <div key={key}>
+                <dt className='font-semibold'>{label}</dt>
+                <dd className='text-base-content/80 whitespace-pre-wrap break-words'>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</dd>
+              </div>;
+            })}
+            <div><dt className='font-semibold'>Collection</dt><dd>{record.collection?.title ?? "None"}</dd></div>
+          </dl>
       </div>
     </div>
   </div>

@@ -9,4 +9,6 @@ export const ENV = {
     FRONTEND_URL: process.env.FRONTEND_URL,
     CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    ALLOWED_CLERK_USER_IDS: process.env.ALLOWED_CLERK_USER_IDS,
+    ML_SERVICE_URL: process.env.ML_SERVICE_URL,
 }

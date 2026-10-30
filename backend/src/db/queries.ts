@@ -1,5 +1,6 @@
 import { db } from "./index";
-import { eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
+import type { InscriptionInput } from "../lib/inscriptionValidation";
 import { users, records, collections, type NewUser, type NewRecord, type NewCollection, type NewInscription, objectTypes, inscriptions } from "./schema";
 
 
@@ -101,6 +102,46 @@ export const createObjectType = async (name: string) => {
 export const createRecord = async(data:NewRecord) => {
     const [record] = await db.insert(records).values(data).returning();
     return record;
+};
+
+export const createRecordWithInscriptions = async (data: NewRecord, entries: InscriptionInput[]) => {
+    return db.transaction(async tx => {
+        const [record] = await tx.insert(records).values(data).returning();
+        const saved = entries.length ? await tx.insert(inscriptions).values(entries.map(entry => ({
+            content: entry.content, language: entry.language, script: entry.script,
+            translation: entry.translation, serifsPresent: entry.serifsPresent,
+            stopmarksPresent: entry.stopmarksPresent, recordId: record.id,
+        }))).returning() : [];
+        return { ...record, inscriptions: saved };
+    });
+};
+
+export const updateRecordWithInscriptions = async (id: string, data: Partial<NewRecord>, entries: InscriptionInput[]) => {
+    return db.transaction(async tx => {
+        // Serialize edits to the parent and its children as one unit.
+        const [existing] = await tx.select().from(records).where(eq(records.id, id)).for("update");
+        if (!existing) throw new Error("Record not found");
+        const savedEntries = await tx.select().from(inscriptions).where(eq(inscriptions.recordId, id));
+        const knownIds = new Set(savedEntries.map(entry => entry.id));
+        if (entries.some(entry => entry.id && !knownIds.has(entry.id)))
+            throw new Error("An inscription changed while this record was being edited");
+        const [record] = await tx.update(records).set({ ...data, updatedAt: new Date() }).where(eq(records.id, id)).returning();
+        const retained = entries.flatMap(entry => entry.id ? [entry.id] : []);
+        await tx.delete(inscriptions).where(retained.length
+            ? and(eq(inscriptions.recordId, id), notInArray(inscriptions.id, retained))
+            : eq(inscriptions.recordId, id));
+        for (const entry of entries) {
+            const { id: inscriptionId, ...content } = entry;
+            if (inscriptionId) {
+                await tx.update(inscriptions).set(content)
+                    .where(and(eq(inscriptions.id, inscriptionId), eq(inscriptions.recordId, id)));
+            } else {
+                await tx.insert(inscriptions).values({ ...content, recordId: id });
+            }
+        }
+        const saved = await tx.select().from(inscriptions).where(eq(inscriptions.recordId, id));
+        return { ...record, inscriptions: saved };
+    });
 };
 
 //gets record info for cards
@@ -217,12 +258,13 @@ export const deleteRecord = async (id: string) => {
         throw new Error(`Record with id ${id} not found`);
     }
 
-    const [record] = await db
-        .delete(records)
-        .where(eq(records.id, id))
-        .returning();
-
-    return record;
+    return db.transaction(async tx => {
+        // Match the editor's parent-first lock order before removing children.
+        await tx.select().from(records).where(eq(records.id, id)).for("update");
+        await tx.delete(inscriptions).where(eq(inscriptions.recordId, id));
+        const [record] = await tx.delete(records).where(eq(records.id, id)).returning();
+        return record;
+    });
 };
 
 // Inscription========================================

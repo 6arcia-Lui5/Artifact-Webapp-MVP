@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import ArtifactImage from "./ArtifactImage";
 
 const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -11,17 +12,8 @@ const RecordCard = ({ record }) => {
             className="card bg-base-300 hover:bg-base-200 transition-colors"
         >
             <figure className="px-4 pt-4">
-                {record.imageSourceUrl ? (
-                    <img
-                        src={record.imageSourceUrl}
-                        alt={record.itemName}
-                        className="rounded-xl h-40 w-full object-cover"
-                    />
-                ) : (
-                    <div className="rounded-xl h-40 w-full bg-base-200 flex items-center justify-center text-base-content/50">
-                        No image
-                    </div>
-                )}
+                <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+                    className="rounded-xl h-48 w-full object-contain bg-white p-3" />
             </figure>
 
             <div className="card-body p-4">
@@ -29,7 +21,7 @@ const RecordCard = ({ record }) => {
                     {record.itemName}
 
                     {isNew && (
-                        <span className="badge badge-secondary badge-sm">
+                        <span className="badge badge-outline badge-sm shrink-0 border-base-content/25 text-base-content">
                             NEW
                         </span>
                     )}

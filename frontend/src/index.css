@@ -35,3 +35,37 @@
   --depth: 1;
   --noise: 0;
 }
+
+/* Authentication extends the catalog's bumblebee palette and serif wordmark. */
+.auth-page { padding-block: 0.5rem 2rem; }
+.auth-back { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; text-underline-offset: 4px; }
+.auth-back:hover { text-decoration: underline; }
+.auth-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); gap: clamp(2rem, 6vw, 5rem); align-items: start; margin-top: 3rem; }
+.auth-intro { padding-top: 1rem; }
+.auth-intro h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.25rem, 4vw, 3.25rem); line-height: 1.1; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance; max-width: 15ch; }
+.auth-intro > p { margin-top: 1.25rem; max-width: 38ch; line-height: 1.7; color: #525252; }
+.auth-artifact { margin-top: 2rem; }
+.auth-artifact img { width: min(100%, 320px); height: 230px; object-fit: contain; mix-blend-mode: multiply; }
+.auth-artifact figcaption { margin-top: 0.75rem; font-size: 0.8125rem; color: #525252; }
+.auth-public-note a { display: inline-flex; align-items: center; gap: 0.3rem; color: #262626; text-decoration: underline; text-underline-offset: 4px; }
+.auth-form { min-width: 0; }
+.auth-dev { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #dedede; font-size: 0.875rem; }
+.auth-dev summary { cursor: pointer; font-weight: 600; padding-block: 0.5rem; }
+.auth-dev p { margin-block: 0.75rem; color: #525252; line-height: 1.6; }
+.auth-presets { display: grid; gap: 0.5rem; }
+.auth-presets button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 0.2rem; padding: 0.65rem 0.8rem; background: #f5f5f5; border: 1px solid #dedede; border-radius: 0.75rem; cursor: pointer; }
+.auth-presets button span:first-child { font-weight: 600; }
+.auth-presets button span:last-child { font-size: 0.75rem; color: #525252; overflow-wrap: anywhere; }
+.auth-presets button:hover { background: #fff6cf; }
+.auth-presets button[aria-pressed="true"] { border-color: #8b6500; background: #fff6cf; }
+.auth-page :focus-visible { outline: 2px solid #8b6500; outline-offset: 4px; }
+.auth-page ::selection { background: #ffdb70; color: #262626; }
+.auth-page input { caret-color: #8b6500; }
+@media (max-width: 700px) {
+  .auth-layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+  .auth-intro { padding-top: 0; }
+  .auth-intro h1 { max-width: 20ch; font-size: 2rem; }
+  .auth-intro > p { max-width: none; margin-top: 0.75rem; }
+  .auth-artifact { display: none; }
+  .auth-form { width: 100%; max-width: 400px; justify-self: center; }
+}
