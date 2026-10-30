@@ -74,6 +74,8 @@ Labels:
 
 ## Results
 
+The October 29 local input fixes preserve readable `[[erased letters]]` and reject fewer than five usable characters, matching corpus inclusion. On a reconstructed 1,023-record Latin-heavy EDH test subset, canonical predictions were unchanged; a controlled readable-erasure notation test improved region accuracy from 53.86% to 59.82% and reduced mean date error from 66.99 to 59.12 years. Checkpoints were unchanged. This is notation robustness, not a new general-accuracy score. See [protocol, limits and reproduction commands](../docs/ml-input-evaluation.md).
+
 The tables below are an earlier training snapshot and do not match all of the
 final committed JSON reports. Use `reports/comparison.json` and
 `reports/flagging_metrics.json` for the latest recorded results on this branch:

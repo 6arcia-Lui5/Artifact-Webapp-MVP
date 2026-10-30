@@ -21,9 +21,9 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from predictor import Predictor
+from predictor import Predictor, prepare_text
 
 HERE = Path(__file__).parent
 app = FastAPI(title="Handheld Words ML", version="0.1.0")
@@ -35,6 +35,14 @@ predictors = {"deep": Predictor("deep"), "baseline": Predictor("baseline")}
 class TextIn(BaseModel):
     text: str = Field(..., min_length=1, description="Inscription text (Leiden brackets are fine)")
     model: str = "deep"
+
+    @field_validator("text")
+    @classmethod
+    def enough_visible_text(cls, value):
+        # Match corpus inclusion before any endpoint starts model inference.
+        # Keep the original notation for the predictor's shared normalization.
+        prepare_text(value)
+        return value
 
 
 class RecordIn(TextIn):

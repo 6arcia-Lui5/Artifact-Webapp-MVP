@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import multer from "multer";
 import sharp from "sharp";
+import { PipelineError, pipelineConfiguration, runTranscriptionPipeline } from "../services/transcriptionPipeline";
 
 const MAX_PIXELS = 20_000_000;
 const TIMEOUT_MS = 115_000;
@@ -69,9 +70,10 @@ export function createTranscriptionRouter(timeoutMs = TIMEOUT_MS) {
   const router = Router();
   router.get("/status", (_req, res) => {
     const { model, endpoint } = configuration();
-    res.json({ configured: Boolean(endpoint), provider: "local-vision", model });
+    const pipeline = pipelineConfiguration();
+    res.json({ configured: Boolean(endpoint), provider: "local-vision", model, pipelineConfigured: Boolean(pipeline), pipelineModel: pipeline?.model || null });
   });
-  router.post("/", async (req, res) => {
+  router.post(["/", "/pipeline"], async (req, res) => {
     const userId = getAuth(req).userId;
     if (!userId) { res.status(401).json({ error: "Sign in to continue" }); return; }
     if (activeUsers.has(userId) || activeUsers.size >= 1) {
@@ -109,6 +111,12 @@ export function createTranscriptionRouter(timeoutMs = TIMEOUT_MS) {
       if (!req.file) throw new DraftError(400, "A photo file is required.");
       const photo = await normalizePhoto(req.file);
       controller.signal.throwIfAborted();
+      if (req.path === "/pipeline") {
+        const pipeline = pipelineConfiguration();
+        if (!pipeline) throw new DraftError(503, "The compared transcription pipeline is not configured. Configure the OCR and vision services.");
+        res.json(await runTranscriptionPipeline(photo, language, pipeline, controller.signal));
+        return;
+      }
       const token = process.env.LOCAL_VISION_TOKEN;
       const response = await fetch(endpoint, {
         method: "POST", signal: controller.signal, redirect: "error",
@@ -139,9 +147,10 @@ export function createTranscriptionRouter(timeoutMs = TIMEOUT_MS) {
       if (!controller.signal.aborted) res.json({ text: result.text, notes: result.notes, model, provider: "local-vision" });
     } catch (error) {
       if (!res.destroyed && !res.headersSent) {
-        const status = timedOut ? 504 : error instanceof DraftError ? error.status : 502;
+        const known = error instanceof DraftError || error instanceof PipelineError;
+        const status = timedOut ? 504 : known ? error.status : 502;
         res.status(status).json({ error: timedOut ? "Local photo transcription timed out. Try a smaller crop or retry later."
-          : error instanceof DraftError ? error.message : "Local photo transcription is unavailable. Try again later." });
+          : known ? error.message : "Local photo transcription is unavailable. Try again later." });
       }
     } finally {
       clearTimeout(timer);

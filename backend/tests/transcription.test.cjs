@@ -74,7 +74,7 @@ test('global access protects both routes; configured does not claim verified ava
     await error(await fetch(base + path, { headers: { 'x-test-user': 'unapproved' } }), 403);
   }
   const status = await fetch(base + '/api/transcription/status', { headers: { 'x-test-user': 'approved' } });
-  assert.deepEqual(await status.json(), { configured: true, provider: 'local-vision', model: 'qwen3-vl:2b-instruct' });
+  assert.deepEqual(await status.json(), { configured: true, provider: 'local-vision', model: 'qwen3-vl:2b-instruct', pipelineConfigured: false, pipelineModel: null });
   delete process.env.LOCAL_VISION_URL;
   await error(await post(), 503);
   process.env.LOCAL_VISION_URL = upstreamUrl;

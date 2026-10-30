@@ -10,11 +10,12 @@ the text suggests:
 Flags are review hints for scholars, not corrections.
 """
 from pathlib import Path
+import re
 
 import joblib
 import numpy as np
 
-from build_dataset import normalize
+from build_dataset import leiden_to_stone
 from labels import USEP_REGION, to_area
 
 HERE = Path(__file__).parent
@@ -23,11 +24,16 @@ DATE_MARGIN = 50
 
 
 def clean(text):
-    """Accept Leiden-style input from users: drop expansions/restorations."""
-    import re
-    t = re.sub(r"\([^)]*\)", "", text)        # (expansions)
-    t = re.sub(r"\[[^\]]*\]", " # ", t)       # [restorations] -> gap
-    return normalize(t)
+    """Use the corpus rules, retaining erased but legible [[letters]]."""
+    return leiden_to_stone(text)
+
+
+def prepare_text(text):
+    """Return cleaned input meeting the corpus's five-character minimum."""
+    t = clean(text)
+    if len(re.sub(r"[#\s]", "", t)) < 5:
+        raise ValueError("Provide at least 5 inscription characters, excluding gaps and whitespace.")
+    return t
 
 
 def norm_region(r):
@@ -64,7 +70,7 @@ class Predictor:
         return list(self.base["region_clf"].classes_)
 
     def predict(self, text):
-        t = clean(text)
+        t = prepare_text(text)
         if self.deep:
             import torch
             import torch.nn.functional as F

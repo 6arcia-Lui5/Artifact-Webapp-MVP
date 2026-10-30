@@ -5,11 +5,11 @@ export const getTranscriptionStatus = async (signal) => {
     return data;
 };
 
-export const transcribePhoto = async (file, language, signal) => {
+export const transcribePhoto = async (file, language, signal, compare = false) => {
     const formData = new FormData();
     formData.append("photo", file);
     formData.append("language", language);
-    const { data } = await api.post("/transcription", formData, { timeout: 120000, signal });
+    const { data } = await api.post(compare ? "/transcription/pipeline" : "/transcription", formData, { timeout: 120000, signal });
     return data;
 };
 

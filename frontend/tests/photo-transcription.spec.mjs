@@ -144,3 +144,40 @@ test('an existing museum image can be selected without uploading a local file', 
   await expect(panel.getByRole('textbox', { name: 'Original inscription text', exact: true })).toHaveValue(/PORCI/, { timeout: 120000 });
   await expect(page.getByLabel(/Original inscription text \*/)).toHaveCount(1);
 });
+
+test('compared photo readings remain auditable and do not change the artifact until explicitly saved', async ({ page, request }) => {
+  test.skip(!enabled || process.env.E2E_PIPELINE !== '1', 'Requires the configured OCR and vision comparison services.');
+  test.setTimeout(180000);
+  const runtimeErrors = [];
+  page.on('pageerror', error => runtimeErrors.push(error.message));
+  const { fixture, original } = await session(page, request);
+  const panel = await openPanel(page, fixture.ownId);
+  await panel.getByRole('combobox', { name: 'Recognition method', exact: true }).selectOption('pipeline');
+  await panel.locator('input[type="file"]').setInputFiles(photoFile('met-256771.jpg'));
+  await panel.getByRole('button', { name: 'Run transcription', exact: true }).click();
+  await expect(panel.getByRole('textbox', { name: 'Original inscription text', exact: true })).toHaveValue(/PORCI/, { timeout: 120000 });
+  await expect(panel.getByText('Automatic acceptance is not enabled. Internal recognition scores are not accuracy percentages.', { exact: true })).toBeVisible();
+  await panel.getByText('Compare original machine readings', { exact: true }).click();
+  await expect(panel.getByText('Full-photo reading', { exact: true })).toBeVisible();
+  await expect(panel.getByText('OCR reading', { exact: true })).toBeVisible();
+  await panel.screenshot({ path: path.join(os.tmpdir(), 'artifact-compared-reading.png') });
+  await page.setViewportSize({ width: 390, height: 900 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await panel.screenshot({ path: path.join(os.tmpdir(), 'artifact-compared-reading-mobile.png') });
+  const downloading = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Download reading evidence', exact: true }).click();
+  const evidence = JSON.parse(fs.readFileSync(await (await downloading).path(), 'utf8'));
+  expect(evidence.review.automaticAcceptance).toBe(false);
+  expect(evidence.provenance.imageSha256).toMatch(/^[a-f0-9]{64}$/);
+  expect(evidence.readings.length).toBeGreaterThanOrEqual(2);
+  await panel.getByRole('button', { name: 'Add transcription', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Inscription 2', exact: true })).toBeVisible();
+  // Inference can outlast Clerk's short-lived token. Refresh for readback as the app does.
+  const token = await page.evaluate(() => window.Clerk.session.getToken());
+  const response = await request.get(`${api}/records/${fixture.ownId}`, { headers: { Authorization: `Bearer ${token}` } });
+  expect(response.status()).toBe(200);
+  const unchanged = await response.json();
+  expect(unchanged.inscriptions).toEqual(original.inscriptions);
+  expect(unchanged.updatedAt).toBe(original.updatedAt);
+  expect(runtimeErrors).toEqual([]);
+});

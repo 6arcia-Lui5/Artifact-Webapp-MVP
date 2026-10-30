@@ -33,6 +33,8 @@ export function parseDating(text?: string | null): { notBefore: number | null; n
     return { notBefore: Math.min(first, last), notAfter: Math.max(first, last) };
 }
 
+class MlInputError extends Error {}
+
 async function callMl(path: string, body: unknown) {
     const r = await fetch(`${ML_URL}${path}`, {
         method: "POST",
@@ -40,6 +42,12 @@ async function callMl(path: string, body: unknown) {
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(10000),
     });
+    if (r.status === 422) {
+        const validation = await r.json().catch(() => null);
+        if (Array.isArray(validation?.detail) && validation.detail.some((entry: { loc?: unknown[] }) => entry.loc?.at(-1) === "text")) {
+            throw new MlInputError("Provide at least 5 inscription characters, excluding gaps and whitespace, before running an ML check.");
+        }
+    }
     if (!r.ok) throw new Error(`ML service returned ${r.status}`);
     return r.json();
 }
@@ -49,6 +57,7 @@ router.post("/check", async (req: Request, res: Response) => {
     try {
         res.json(await callMl("/check", req.body));
     } catch (e) {
+        if (e instanceof MlInputError) return res.status(400).json({ error: e.message });
         res.status(502).json({ error: "ML service unavailable", detail: String(e) });
     }
 });
@@ -79,6 +88,7 @@ router.get("/records/:id/check", async (req: Request, res: Response) => {
             ...result,
         });
     } catch (e) {
+        if (e instanceof MlInputError) return res.status(400).json({ error: e.message });
         res.status(502).json({ error: "ML check failed", detail: String(e) });
     }
 });

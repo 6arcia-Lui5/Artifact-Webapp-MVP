@@ -26,7 +26,7 @@ before(async () => {
     received = { path: req.url, body: JSON.parse(body) };
     modelCalls++;
     res.writeHead(modelStatus, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(prediction));
+    res.end(JSON.stringify(modelStatus === 422 ? { detail: [{ loc: ["body", "text"], msg: "Value error, Provide at least 5 inscription characters" }] } : prediction));
   });
   const modelUrl = await listen(mlServer);
   stub("../dist/config/env.js", { ENV: {
@@ -120,6 +120,19 @@ test("a model-service failure returns JSON without breaking catalog access", asy
     const response = await check("/api/ml/check", { body: { text: "D M" } });
     assert.equal(response.status, 502);
     assert.equal((await response.json()).error, "ML service unavailable");
+    assert.equal((await check("/api/access")).status, 204);
+  } finally { modelStatus = 200; }
+});
+
+test("insufficient inscription text returns actionable input guidance through both ML routes", async () => {
+  modelStatus = 422;
+  storedRecord = { id: "one", inscriptions: [{ content: "D M" }] };
+  try {
+    for (const [path, body] of [["/api/ml/check", { text: "D M" }], ["/api/ml/records/one/check", undefined]]) {
+      const response = await check(path, { body });
+      assert.equal(response.status, 400);
+      assert.match((await response.json()).error, /at least 5 inscription characters/);
+    }
     assert.equal((await check("/api/access")).status, 204);
   } finally { modelStatus = 200; }
 });
