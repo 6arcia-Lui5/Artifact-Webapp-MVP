@@ -38,7 +38,7 @@ async function login(page, account) {
   await page.waitForURL(url => !url.pathname.startsWith("/login"), { timeout: 15000 });
 }
 test("visitors are sent to login before any catalog page loads", async ({ page }) => {
-  for (const route of ["/", "/collections", "/record/example", "/search", "/create", "/profile", "/edit/example"]) {
+  for (const route of ["/", "/collections", "/collections/example", "/record/example", "/search", "/create", "/profile", "/edit/example", "/import", "/review"]) {
     await page.goto(route);
     await expect(page).toHaveURL(new RegExp("/login\\?redirect="));
     expect(new URL(page.url()).searchParams.get("redirect")).toBe(route);
@@ -66,6 +66,9 @@ test("API denies anonymous reads and writes with JSON 401", async ({ request }) 
     ["get", "/collections"], ["get", "/collections/example"],
     ["post", "/records"], ["put", "/records/example"],
     ["delete", "/records/example"], ["post", "/collections"], ["post", "/users/sync"],
+    ["get", "/research/records"], ["get", "/research/export"], ["get", "/research/collections"],
+    ["get", "/research/imports"], ["post", "/research/imports/preview"], ["get", "/research/storage/status"],
+    ["get", "/research/access"], ["get", "/research/moderation"], ["get", "/research/roles"], ["post", "/research/records/00000000-0000-0000-0000-000000000001/moderate"],
   ]) {
     const response = await request[method](apiUrl + path, { data: {}, maxRedirects: 0 });
     expect(response.status()).toBe(401);
@@ -104,12 +107,14 @@ test("hosted approved account reads the Neon catalog", async ({ page }) => {
   test.skip(!process.env.E2E_HOSTED, "Run this check against the Vercel deployment.");
   await page.goto("/");
   const responsePromise = page.waitForResponse(response =>
-    response.url() === apiUrl + "/records" && response.request().method() === "GET");
+    response.url().startsWith(apiUrl + "/research/records?") && response.request().method() === "GET");
   await login(page, accounts[0]);
   const response = await responsePromise;
   expect(response.status()).toBe(200);
-  const records = await response.json();
+  const { items: records, total, pageSize } = await response.json();
   expect(Array.isArray(records)).toBe(true);
+  expect(records.length).toBeLessThanOrEqual(pageSize);
+  expect(total).toBeGreaterThanOrEqual(records.length);
   if (records.length) {
     await expect(page.getByRole("heading", { name: records[0].itemName, exact: false }).first()).toBeVisible();
   } else {
@@ -119,26 +124,26 @@ test("hosted approved account reads the Neon catalog", async ({ page }) => {
 test("search, record details and object types work with an approved account", async ({ page }) => {
   await page.goto("/");
   const catalogPromise = page.waitForResponse(response =>
-    response.url() === apiUrl + "/records" && response.request().method() === "GET");
+    response.url().startsWith(apiUrl + "/research/records?") && response.request().method() === "GET");
   await login(page, accounts[0]);
   const catalog = await catalogPromise;
   expect(catalog.status()).toBe(200);
-  const records = await catalog.json();
+  const { items: records } = await catalog.json();
   test.skip(!records.length, "Search needs an existing catalog record.");
   const record = records[0];
 
   await page.getByRole("link", { name: "Search", exact: true }).click();
   await page.getByPlaceholder("Search records...").fill(record.itemName);
   const searchPromise = page.waitForResponse(response =>
-    response.url().startsWith(apiUrl + "/records/search?") && response.request().method() === "GET");
+    response.url().startsWith(apiUrl + "/research/records?") && new URL(response.url()).searchParams.get('q') === record.itemName && response.request().method() === "GET");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const search = await searchPromise;
   expect(search.status()).toBe(200);
-  expect((await search.json()).some(result => result.id === record.id)).toBe(true);
+  expect((await search.json()).items.some(result => result.id === record.id)).toBe(true);
   const result = page.locator(".card").filter({
     has: page.getByRole("heading", { name: record.itemName, exact: true }),
   }).first();
-  await result.getByRole("button", { name: "View", exact: true }).click();
+  await result.getByRole("link", { name: "View", exact: true }).click();
   await expect(page.getByRole("heading", { name: record.itemName, exact: true })).toBeVisible();
   await expect(page.locator("dd").filter({ hasText: record.museumName }).first()).toBeVisible();
 
@@ -336,7 +341,7 @@ test("another approved account cannot edit an artifact or its inscriptions", asy
   const fixture = JSON.parse(fs.readFileSync(process.env.E2E_FIXTURE, "utf8"));
   await page.goto(`/edit/${fixture.ownId}`);
   await login(page, accounts[1]);
-  await expect(page.getByRole("heading", { name: "Only the creator can edit this artifact", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Editing is limited to the creator or an administrator", exact: true })).toBeVisible();
   const token = await page.evaluate(() => window.Clerk.session.getToken());
   const headers = { Authorization: `Bearer ${token}` };
   const response = await request.put(apiUrl + `/records/${fixture.ownId}`, { headers, data: { itemName: "Should not save", inscriptions: [] } });

@@ -25,7 +25,62 @@ const core = {
 };
 const entry = { content: "χαῖρε", language: "Greek", script: "Greek", translation: "" };
 const response = () => ({ status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } });
-beforeEach(() => { writes = []; existing = { id: "record", userId: "owner", inscribed: true, inscriptions: [{ id: inscriptionId }, { id: otherId }] }; });
+beforeEach(() => { writes = []; existing = { id: "record", userId: "owner", moderationStatus: "approved", inscribed: true, inscriptions: [{ id: inscriptionId }, { id: otherId }] }; });
+
+test('a stale editor receives a conflict when a saved inscription was removed concurrently', async () => {
+  existing.revision = 7;
+  existing.inscriptions = [];
+  const body = { itemName: 'Unsaved researcher changes', expectedRevision: 6, inscriptions: [{ ...entry, id: inscriptionId }] };
+  const stale = response();
+  await controller.updateRecord({ authenticatedUser: 'owner', params: { id: 'record' }, body }, stale);
+  assert.equal(stale.statusCode, 409);
+  assert.match(stale.body.error, /latest record/);
+  assert.equal(writes.length, 0);
+  const invalid = response();
+  await controller.updateRecord({ authenticatedUser: 'owner', params: { id: 'record' }, body: { ...body, expectedRevision: 7 } }, invalid);
+  assert.equal(invalid.statusCode, 400);
+  assert.equal(writes.length, 0);
+});
+
+test("explicit draft update retains imported unknown language, script and flags", async () => {
+  const unknown = { id: inscriptionId, content: "D M\nLiteral original", language: null, script: null,
+    translation: null, serifsPresent: null, stopmarksPresent: null };
+  const res = response();
+  await controller.updateRecord({ authenticatedUser: "owner", params: { id: "record" }, body: {
+    itemName: "Source title corrected", saveAsDraft: true, inscriptions: [unknown],
+  } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(writes[0].entries, [unknown]);
+  const strict = response();
+  await controller.updateRecord({ authenticatedUser: "owner", params: { id: "record" }, body: { inscriptions: [unknown] } }, strict);
+  assert.equal(strict.statusCode, 400);
+});
+
+test("legacy update validates and forwards captured revisions and returns actionable conflicts", async () => {
+  for (const expectedRevision of [0, -1, 1.5, "2", null]) {
+    const res = response();
+    await controller.updateRecord({ authenticatedUser: "owner", params: { id: "record" }, body: { itemName: "Edit", expectedRevision } }, res);
+    assert.equal(res.statusCode, 400);
+  }
+  assert.equal(writes.length, 0);
+  const { ApiError } = require('../dist/research/validation');
+  for (const withChildren of [false, true]) {
+    const name = withChildren ? 'updateRecordWithInscriptions' : 'updateRecord';
+    const previous = queries[name];
+    queries[name] = async (...args) => {
+      assert.equal(args.at(-1), 7);
+      throw new ApiError(409, "This artifact changed. Inspect the latest record before retrying your saved edits.");
+    };
+    try {
+      const res = response();
+      await controller.updateRecord({ authenticatedUser: "owner", params: { id: "record" }, body: {
+        itemName: "Edit", expectedRevision: 7, ...(withChildren ? { inscriptions: [{ ...entry, id: inscriptionId }] } : {}),
+      } }, res);
+      assert.equal(res.statusCode, 409);
+      assert.match(res.body.error, /Inspect the latest record/);
+    } finally { queries[name] = previous; }
+  }
+});
 
 test("creating an artifact forwards multiple original inscriptions while stripping client ownership and timestamps", async () => {
   const res = response();

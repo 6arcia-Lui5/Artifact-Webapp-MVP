@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import ArtifactImage from "./ArtifactImage";
+import ResearchImage from "./ResearchImage";
+import RecordMetadata from './research/RecordMetadata';
 
 const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -12,7 +13,7 @@ const RecordCard = ({ record }) => {
             className="card bg-base-300 hover:bg-base-200 transition-colors"
         >
             <figure className="px-4 pt-4">
-                <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+                <ResearchImage record={record}
                     className="rounded-xl h-48 w-full object-contain bg-white p-3" />
             </figure>
 
@@ -33,6 +34,7 @@ const RecordCard = ({ record }) => {
                     </p>
                 )}
 
+                <RecordMetadata record={record} />
                 <div className="divider my-1"></div>
 
                 <div className="flex items-center justify-between">

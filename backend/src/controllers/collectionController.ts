@@ -41,6 +41,7 @@ export const createCollection = async (req: Request, res: Response) => {
         }
 
         const collection = await queries.createCollection({
+            userId,
             title,
             description,
             timePeriod,

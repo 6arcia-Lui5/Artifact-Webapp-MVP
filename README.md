@@ -2,6 +2,21 @@
 
 An artifact catalog built with React/Vite, Express/TypeScript, PostgreSQL/Drizzle, and Clerk.
 
+## Research catalog
+
+`feature/research-catalog` develops the integrated catalog into a research workflow. It requires an explicit database migration before deployment; it is separate from the original integration pull request.
+
+- Search artifact metadata, literal inscriptions and translations, with structured filters, signed date intervals, stable pagination and selected CSV/JSON downloads. Text search matches complete words with all supplied terms; it is not fuzzy or substring matching.
+- Organize readable artifacts into owned collections. Removing a collection or its membership preserves the artifacts.
+- Use **Import** to preview CSV/XLSX files or selected Met/Cleveland object IDs, inspect mappings and reuse information, skip duplicates and explicitly resume saved batches. Original inscription text, language, script and translation have separate mappings. Unknown source facts remain unknown.
+- Attach multiple source links or upload private photographs, preserve exact originals, choose a primary view and download originals. The development PC adapter and hosted Cloudflare R2 adapter share the same workflow. See [image storage and cost](docs/image-storage.md).
+- Keep source provenance, scholarly assessments and revision snapshots. Restore requires a current revision check and creates another audited revision.
+- Editorial approval is separate from scholarly certainty. New submissions and substantive edits enter the pending queue. Contributors retain their own pending records; other approved accounts see approved records. Trusted reviewers can inspect submissions and decide on others' work. Administrators manage reviewer roles and can edit any artifact. Administrator identities are configured only on the backend.
+
+The existing approved-account login gate still applies. Approval does not publish the catalog to the anonymous internet, prove a transcription correct, or create additional accounts. Model recognition remains a separate, explicitly reviewed workflow.
+
+See [backend setup and API](backend/RESEARCH_API.md) for the ordered migrations, server-only role configuration, local/R2 storage settings, import limits, backups and recovery. Local filesystem photographs are not a hosted demonstration for Hallie; hosted uploads need a private R2 bucket and backend credentials.
+
 ## Integrated MVP branch (October 28)
 
 `integration/mvp-ml` combines the existing work below. It is published for team review; it is not a deployed release.
@@ -21,11 +36,11 @@ The older `create-page` editor targeted a previous schema. The current editor us
 
 Open an artifact you created and choose **Edit**, or open **Profile** and choose its **Edit** action. The editor preloads the current metadata and all stored inscription entries. Fields are grouped into identification, museum, dating/provenance, physical description, inscriptions, and images/sources. Save changes returns to the artifact and refreshes detail, profile and catalog/search caches; Cancel returns without saving.
 
-Check **Inscribed?** to enter original text, language, script, an optional English translation, and serif/stopmark information. Use **Add inscription** for multiple entries. Existing inscription IDs are preserved. Removing an entry only takes effect on Save; metadata-only API updates that omit `inscriptions` preserve all existing entries. The backend validates every supplied entry before writes and saves the artifact and inscription set in one transaction. Only the artifact's creator can edit it. Deleting an owned artifact also removes its linked inscriptions in the same transaction.
+Check **Inscribed?** to enter original text, language, script, an optional English translation, and serif/stopmark information. Use **Add inscription** for multiple entries. Existing inscription IDs are preserved. Removing an entry only takes effect on Save; metadata-only API updates that omit `inscriptions` preserve all existing entries. The backend validates every supplied entry before writes and saves the artifact and inscription set in one transaction. The artifact's creator or an administrator can edit it. Deleting an artifact also removes its linked inscriptions in the same transaction.
 
 New artifact saves open their detail page. Failed saves preserve form input and display an actionable error. The image source stays available independently of the artifact's imagery flag; **Preview image** checks the supplied link before saving. Existing imports with invalid source descriptions still need a valid link or a blank source, and misplaced metadata must be corrected against the original workbook. No existing client data is automatically rewritten.
 
-Spreadsheet upload remains available below manual entry. It currently imports artifact metadata; add transcription text through the editor. Filtered catalog discovery, an import preview, collections, and source-verified cleanup of legacy data remain follow-up work.
+Legacy spreadsheet upload remains available below manual entry for complete artifact metadata. Prefer **Import** for preview, source mapping, literal inscriptions, missing metadata, duplicate checks and resumable batches. Existing source data still needs verification against its original workbook; imports do not rewrite old records automatically.
 
 At the initial integration checkpoint on October 28, frontend/backend builds and frontend lint passed; all 15 backend tests and the 15 catalog/login browser tests passed, followed by the separate authenticated real-model bridge test. Both baseline and deep models returned valid results for all 16 bundled examples. The deep model agreed with all 16 selected demo labels, while the baseline agreed with 14. These selected examples do not measure general accuracy. The verified runtime was Python 3.12.16, scikit-learn 1.9.1 and CPU PyTorch 2.14.1. Neither training nor held-out evaluation was rerun.
 

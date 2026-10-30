@@ -1,7 +1,11 @@
 import { Link, useNavigate } from "react-router";
-import { useMyRecords, useDeleteRecord } from "../../hooks/useRecords";
+import { useAuth } from "@clerk/react";
+import { useDeleteRecord } from "../../hooks/useRecords";
+import { useCatalogLocation, useResearchRecords } from "../../hooks/useResearchCatalog";
+import { CatalogPagination, CatalogSort, QueryError } from "../components/research/CatalogFeedback";
+import RecordMetadata from "../components/research/RecordMetadata";
 import LoadingSpinner from "../components/LoadingSpinner";
-import ArtifactImage from "../components/ArtifactImage";
+import ResearchImage from "../components/ResearchImage";
 import {
   PlusIcon,
   PackageIcon,
@@ -12,7 +16,10 @@ import {
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { data: records, isLoading } = useMyRecords();
+  const { userId } = useAuth();
+  const location = useCatalogLocation({ mine: 1 });
+  const query = useResearchRecords(location.params, !!userId);
+  const records = query.data?.items || [];
   const deleteRecord = useDeleteRecord();
 
   const handleDelete = (id) => {
@@ -20,8 +27,6 @@ const ProfilePage = () => {
       deleteRecord.mutate(id);
     }
   };
-
-  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6">
@@ -45,23 +50,25 @@ const ProfilePage = () => {
         <div className="stat">
           <div className="stat-title">Total Records</div>
           <div className="stat-value text-primary">
-            {records?.length || 0}
+            {query.data?.total ?? "—"}
           </div>
         </div>
       </div>
 
       {/* Records */}
-      {records?.length === 0 ? (
+      <div className="flex flex-wrap items-center justify-between gap-3"><Link to="/collections" className="link text-sm">Manage collections</Link><CatalogSort params={location.params} update={location.update} /></div>
+      {deleteRecord.isError ? <QueryError error={deleteRecord.error} /> : null}
+      {location.dateError ? <div role="alert" className="alert alert-error">{location.dateError}<button className="btn btn-sm" onClick={location.clear}>Clear filters</button></div> : query.isPending ? <LoadingSpinner /> : query.isError ? <QueryError error={query.error} retry={() => query.refetch()} /> : records.length === 0 ? (
         <div className="card bg-base-300">
           <div className="card-body items-center text-center py-16">
             <PackageIcon className="size-16 text-base-content/20" />
 
             <h3 className="card-title text-base-content/50">
-              No records yet
+              {query.data.total > 0 ? "No records on this page" : "No records yet"}
             </h3>
 
             <p className="text-base-content/40 text-sm">
-              Start by creating your first record
+              {query.data.total > 0 ? "Use Previous below to return to your records." : "Start by creating your first record"}
             </p>
 
             <Link
@@ -81,7 +88,7 @@ const ProfilePage = () => {
             >
               {/* Image */}
               <figure className="w-32 shrink-0">
-                <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
+                <ResearchImage record={record}
                   className="h-full min-h-32 w-full object-cover" />
               </figure>
 
@@ -107,11 +114,7 @@ const ProfilePage = () => {
                   </p>
                 )}
 
-                {record.museumName && (
-                  <p className="text-xs text-base-content/50">
-                    {record.museumName}
-                  </p>
-                )}
+                <RecordMetadata record={record} />
 
                 {/* Actions */}
                 <div className="card-actions justify-end mt-2">
@@ -125,7 +128,7 @@ const ProfilePage = () => {
                     View
                   </button>
 
-                  <button
+                  {userId && record.userId === userId ? <><button
                     onClick={() =>
                       navigate(`/edit/${record.id}`)
                     }
@@ -147,12 +150,14 @@ const ProfilePage = () => {
                     )}
                     Delete
                   </button>
+                  </> : null}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+      {!location.dateError && !query.isError ? <CatalogPagination data={query.data} params={location.params} update={location.update} /> : null}
     </div>
   );
 };

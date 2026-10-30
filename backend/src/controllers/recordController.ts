@@ -1,17 +1,20 @@
 import type { Request, Response } from "express"
 import * as queries from "../db/queries"
+import { canEdit, canRead, catalogAccess } from "../research/access";
 import { getAuth } from "@clerk/express"
 import * as XLSX from "xlsx"
+import { ApiError } from "../research/validation";
+import { checkWorkbook, checkSheetRows } from "../research/spreadsheet";
 import { records, type NewRecord } from "../db/schema";
 import { getTableColumns } from "drizzle-orm";
 import { readInscriptions } from "../lib/inscriptionValidation";
-import { normalizeImportHeader, recordValidationError } from "../lib/recordValidation";
+import { normalizeImportHeader, recordValidationError, normalizeDraftFields } from "../lib/recordValidation";
 
 // Record identity, ownership and timestamps are managed by the server.
 const recordColumns = new Set(Object.keys(getTableColumns(records)));
 const editableRecordData = (body: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(body).filter(([key]) =>
-        recordColumns.has(key) && !["id", "userId", "createdAt", "updatedAt"].includes(key))) as
+        recordColumns.has(key) && !["id", "userId", "createdAt", "updatedAt", "collectionId", "revision", "moderationStatus", "moderationNotes", "moderatedBy", "moderatedAt", "reviewStatus", "reviewNotes", "reviewerId", "reviewedAt", "sourceProvenance", "sourceProvider", "sourceObjectId", "sourceUrl", "sourceRetrievedAt"].includes(key))) as
         Omit<NewRecord, "id" | "userId" | "createdAt" | "updatedAt">;
 
 // Field map (Excel to DB)
@@ -69,7 +72,7 @@ const FIELD_MAP: Record<string, string> = {
 export const getAllRecords = async (req: Request, res: Response) => {
     try {
         const records = await queries.getAllRecords();
-        res.status(200).json(records);
+        res.status(200).json(records.filter(record => canRead(record, catalogAccess(getAuth(req).userId ?? ""))));
     } catch (error) {
         console.error("Error getting records:", error);
         res.status(500).json({error: "Failed to get records" })
@@ -104,7 +107,7 @@ export const getRecordById = async (req: Request, res: Response) => {
         const { id } = req.params;
         const record = await queries.getRecordById(id.toString());
 
-        if (!record) return res.status(404).json({ error: "Record not found" });
+        if (!record || !canRead(record, catalogAccess(getAuth(req).userId ?? ""))) return res.status(404).json({ error: "Record not found" });
 
         return res.status(200).json(record);
     } catch(error) {
@@ -169,11 +172,13 @@ export const createRecord = async (req: Request, res: Response) => {
         const { userId } = getAuth(req);
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const payload = { ...editableRecordData(req.body || {}), userId };
-        const validationError = recordValidationError(payload);
+        const editable = editableRecordData(req.body || {});
+        const payload = { ...(req.body?.saveAsDraft === true ? normalizeDraftFields(editable) : editable), userId };
+        if (req.body?.saveAsDraft !== undefined && typeof req.body.saveAsDraft !== 'boolean') return res.status(400).json({ error: 'saveAsDraft must be true or false.' });
+        const validationError = recordValidationError(payload, { draft: req.body?.saveAsDraft === true });
         if (validationError) return res.status(400).json({ error: validationError });
 
-        const inscriptionInput = readInscriptions(req.body || {});
+        const inscriptionInput = readInscriptions(req.body || {}, { draft: req.body?.saveAsDraft === true });
         if (inscriptionInput.error) return res.status(400).json({ error: inscriptionInput.error });
         if (inscriptionInput.values?.some(entry => entry.id))
             return res.status(400).json({ error: "New inscriptions receive their identifiers when saved." });
@@ -198,12 +203,12 @@ export const createRecord = async (req: Request, res: Response) => {
 //         const { title, description, imageUrl, date, material, dimensions, classification, credit, objectNumber, collectionId } = req.body;
 
 //         const existingRecord = await queries.getRecordById(id.toString());
-//         if (!existingRecord) {
+//         if (!existingRecord || !canRead(existingRecord, catalogAccess(userId))) {
 //             res.status(404).json({ error: "Record not found" });
 //             return;
 //         }
 
-//         if (existingRecord.userId !== userId) {
+//         if (!canEdit(existingRecord, userId)) {
 //             res.status(403).json({ error: "You can only update your own records" });
 //             return;
 //         }
@@ -237,25 +242,40 @@ export const updateRecord = async (req: Request, res: Response) => {
         const id  = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;;
 
         const existing = await queries.getRecordById(id);
-        if (!existing) return res.status(404).json({ error: "Record not found" });
+        if (!existing || !canRead(existing, catalogAccess(userId))) return res.status(404).json({ error: "Record not found" });
 
-        if (existing.userId !== userId)
+        if (!canEdit(existing, userId))
             return res.status(403).json({ error: "You can only update your own records" });
 
-        const payload = editableRecordData(req.body || {});
-        const validationError = recordValidationError(payload, { partial: true });
+        const editable = editableRecordData(req.body || {});
+        const expectedRevision = req.body?.expectedRevision;
+        if (expectedRevision !== undefined && (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1))
+            return res.status(400).json({ error: "expectedRevision must be a positive integer." });
+        // Reject stale forms before validating child IDs from a newer revision.
+        // The query repeats this check under its parent-row lock to close races.
+        if (expectedRevision !== undefined && existing.revision !== expectedRevision)
+            return res.status(409).json({ error: "This artifact changed. Inspect the latest record before retrying your saved edits." });
+        const payload = req.body?.saveAsDraft === true ? normalizeDraftFields(editable) : editable;
+        if (req.body?.saveAsDraft !== undefined && typeof req.body.saveAsDraft !== 'boolean') return res.status(400).json({ error: 'saveAsDraft must be true or false.' });
+        const validationError = recordValidationError(payload, { partial: true, draft: req.body?.saveAsDraft === true });
         if (validationError) return res.status(400).json({ error: validationError });
-        const inscriptionInput = readInscriptions({ ...req.body, inscribed: payload.inscribed ?? existing.inscribed });
+        const dateStart = payload.dateStart === undefined ? existing.dateStart : payload.dateStart;
+        const dateEnd = payload.dateEnd === undefined ? existing.dateEnd : payload.dateEnd;
+        if (dateStart != null && dateEnd != null && dateStart > dateEnd) return res.status(400).json({ error: 'Date start must not follow date end.' });
+        const inscriptionInput = readInscriptions({ ...req.body, inscribed: payload.inscribed ?? existing.inscribed }, { draft: req.body?.saveAsDraft === true });
         if (inscriptionInput.error) return res.status(400).json({ error: inscriptionInput.error });
+        if (!Object.keys(payload).length && inscriptionInput.values === undefined)
+            return res.status(400).json({ error: "No editable record fields supplied" });
         const knownIds = new Set((existing.inscriptions || []).map(entry => entry.id));
         if (inscriptionInput.values?.some(entry => entry.id && !knownIds.has(entry.id)))
             return res.status(400).json({ error: "An inscription does not belong to this artifact. Reload before editing." });
         const updated = inscriptionInput.values === undefined
-            ? await queries.updateRecord(id, payload)
-            : await queries.updateRecordWithInscriptions(id, payload, inscriptionInput.values);
+            ? await queries.updateRecord(id, payload, expectedRevision)
+            : await queries.updateRecordWithInscriptions(id, payload, inscriptionInput.values, expectedRevision);
 
         res.status(200).json(updated);
     } catch (error) {
+        if (error instanceof ApiError) return res.status(error.status).json({ error: error.message });
         console.error("Error updating record:", error);
         res.status(500).json({ error: "Failed to update record" });
     }
@@ -270,12 +290,12 @@ export const deleteRecord = async (req: Request, res: Response) => {
         const { id } = req.params;
 
         const existingRecord = await queries.getRecordById(id.toString());
-        if (!existingRecord) {
+        if (!existingRecord || !canRead(existingRecord, catalogAccess(userId))) {
             res.status(404).json({ error: "Record not found" });
             return;
         }
 
-        if (existingRecord.userId !== userId) {
+        if (!canEdit(existingRecord, userId)) {
             res.status(403).json({ error: "You can only delete your own records" });
             return;
         }
@@ -305,7 +325,12 @@ export const importRecords = async (req: Request, res: Response) => {
             });
         }
 
+        if (req.file.buffer.length > 4 * 1024 * 1024) throw new ApiError(413, 'File must be at most 4 MiB');
         const fileName = req.file.originalname.toLowerCase();
+        if (!/\.(csv|xlsx)$/.test(fileName)) throw new ApiError(400, 'Choose CSV or XLSX');
+        if (fileName.endsWith('.xlsx') && req.file.buffer.subarray(0, 2).toString() !== 'PK')
+            throw new ApiError(400, 'Invalid XLSX');
+        checkWorkbook(req.file.buffer);
         const isCSV = fileName.endsWith(".csv");
 
         let rows: any[] = [];
@@ -318,28 +343,31 @@ export const importRecords = async (req: Request, res: Response) => {
             const csvString = req.file.buffer.toString("utf-8");
 
             const workbook = XLSX.read(csvString, {
-                type: "string",
+                type: "string", sheetRows: 502,
             });
 
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
+            checkSheetRows(worksheet);
 
             rows = XLSX.utils.sheet_to_json(worksheet, {
                 defval: null,
             });
         } else {
             const workbook = XLSX.read(req.file.buffer, {
-                type: "buffer",
+                type: "buffer", sheetRows: 502,
             });
 
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
+            checkSheetRows(worksheet);
 
             rows = XLSX.utils.sheet_to_json(worksheet, {
                 defval: null,
             });
         }
 
+        if (rows.length > 500) throw new ApiError(413, "At most 500 data rows");
         if (rows.length === 0) {
             return res.status(400).json({
                 error: "File contains no records",
@@ -484,6 +512,7 @@ export const importRecords = async (req: Request, res: Response) => {
             records: inserted,
         });
     } catch (error) {
+        if (error instanceof ApiError) return res.status(error.status).json({ error: error.message });
         console.error("Error importing records:", error);
 
         return res.status(500).json({

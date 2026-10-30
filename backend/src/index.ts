@@ -12,6 +12,10 @@ import mlRoutes from "./routes/mlRoutes";
 import transcriptionRoutes from "./routes/transcriptionRoutes";
 import museumPhotoRoutes from "./routes/museumPhotoRoutes";
 
+import { pool } from './db';
+import { createResearchRouter } from './research/router';
+import { catalogContext } from './research/access';
+
 const app = express()
 
 app.use(cors({ origin: ENV.FRONTEND_URL, credentials: true })); //credentials:ture allows frontend to send cookies to backend so we can authenticate user
@@ -35,6 +39,8 @@ app.get("/", (req, res) => {
     });
 });
 
+app.use(catalogContext(pool));
+app.use("/api/research", createResearchRouter(pool));
 app.use("/api/users", userRoutes);
 app.use("/api/collections", collectionRoutes);
 app.use("/api/records", recordRoutes);
@@ -42,6 +48,11 @@ app.use("/api/object-types", objectTypeRoutes);
 app.use("/api/ml", mlRoutes);
 app.use("/api/transcription", transcriptionRoutes);
 app.use("/api/transcription", museumPhotoRoutes);
+app.use((error: any, _req: any, res: any, _next: any) => {
+    const missingMigration = ['42P01', '42703'].includes(error?.code);
+    const status = missingMigration ? 503 : error?.status ?? 500;
+    res.status(status).json({ error: missingMigration ? 'Research catalog migrations are not applied to the configured schema.' : status === 500 ? 'Catalog operation failed' : error.message });
+});
 
 
 // Vercel imports the Express app as a function. Keep the local server for development.
