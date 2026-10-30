@@ -24,6 +24,16 @@ Private images currently pass through authenticated backend routes. R2's free eg
 
 Use the existing frontend/backend hosting and Neon database, plus one private R2 bucket. No Cloudflare Worker or new database provider is required for this implementation. A hosted demonstration requires the explicit database migration and backend R2 configuration; source-link viewing can work with uploads disabled.
 
+### Connecting Hallie's own account later
+
+Keep the current demonstration on its existing storage setting until Hallie has created her Cloudflare account. Her account can own the private R2 Standard bucket used by the shared catalog. There is no separate application namespace to transfer: configure the backend with her R2 account endpoint, bucket name and bucket-scoped read/write credentials, as described in the backend guide. These credentials belong only in backend environment settings, never a browser setting or source control.
+
+Cloudflare storage ownership and application administrator access are separate. Once her approved application login exists, configure its Clerk user ID as an administrator on the backend. Creating a Cloudflare account does not grant access to artifact records.
+
+Changing storage configuration does not transfer photographs. Before switching a catalog that already has local uploads, copy originals and thumbnails to the new bucket, verify their contents and authenticated retrieval, and deliberately update the stored driver/key metadata. Keep the original files and a database backup until that verification is complete. The application refuses to serve objects through a different storage driver; it does not silently move or discard them.
+
 The current upload limit is 4 MiB per photograph, allowing multipart overhead below Vercel's 4.5 MB function request limit. Oversized research originals need a future direct-upload workflow or private offline archive; they must not be silently reduced and presented as preserved originals. [Vercel function limits](https://vercel.com/docs/functions/limitations).
 
 Back up both the database and original image store. Source links and database-only backups do not contain uploaded photographs. Verify backup recovery in a separate environment before relying on the catalog as the sole research archive.
+
+Revision history also consumes database space. Neon currently lists 1 GB of database storage and 100 CU-hours per project on its Free plan. Repeated full snapshots, indexes and long inscriptions can reach that allowance even when R2 image usage is small. Monitor both services; no history is automatically purged. Plan verified archival or paid database capacity before the allowance is exhausted. [Neon pricing](https://neon.com/pricing).

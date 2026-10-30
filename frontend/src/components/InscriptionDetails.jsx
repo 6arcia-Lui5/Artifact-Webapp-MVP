@@ -8,8 +8,8 @@ export default function InscriptionDetails({ entries = [] }) {
         <dl className="grid gap-3 sm:grid-cols-2 text-sm">
           <div><dt className="font-semibold">Language</dt><dd>{entry.language || "Not recorded"}</dd></div>
           <div><dt className="font-semibold">Script</dt><dd>{entry.script || "Not recorded"}</dd></div>
-          <div><dt className="font-semibold">Serifs present</dt><dd>{entry.serifsPresent ? "Yes" : "No"}</dd></div>
-          <div><dt className="font-semibold">Stopmarks present</dt><dd>{entry.stopmarksPresent ? "Yes" : "No"}</dd></div>
+          <div><dt className="font-semibold">Serifs present</dt><dd>{entry.serifsPresent == null ? 'Unknown' : entry.serifsPresent ? "Yes" : "No"}</dd></div>
+          <div><dt className="font-semibold">Stopmarks present</dt><dd>{entry.stopmarksPresent == null ? 'Unknown' : entry.stopmarksPresent ? "Yes" : "No"}</dd></div>
           {entry.translation && <div className="sm:col-span-2"><dt className="font-semibold">English translation</dt><dd className="whitespace-pre-wrap break-words">{entry.translation}</dd></div>}
         </dl>
       </section>)}

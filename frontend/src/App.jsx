@@ -1,6 +1,9 @@
 import { Navigate, Route, Routes } from "react-router";
 import HomePage from "./pages/HomePage";
 import CollectionPage from "./pages/CollectionPage";
+import CollectionDetailPage from "./pages/CollectionDetailPage";
+import ImportPage from "./pages/ImportPage";
+import ReviewQueuePage from "./pages/ReviewQueuePage";
 import RecordPage from "./pages/RecordPage";
 import ProfilePage from "./pages/ProfilePage";
 import CreatePage from "./pages/CreatePage";
@@ -23,6 +26,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/collections" element={<CollectionPage />} />
+          <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/record/:id" element={<RecordPage />} />
           <Route path="/search" element={<SearchPage />} />
           {!import.meta.env.DEV && (
@@ -33,6 +37,8 @@ function App() {
           <Route element={<RequireSignIn />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/create" element={<CreatePage />} />
+            <Route path="/import" element={<ImportPage />} />
+            <Route path="/review" element={<ReviewQueuePage />} />
             <Route path="/edit/:id" element={<EditRecordPage />} />
             <Route path="/edit" element={<EditRecordPage />} />
           </Route>

@@ -23,6 +23,7 @@ export default function CreatePage() {
     <section className="card border border-base-300">
       <div className="card-body p-5 sm:p-8">
         <h2 className="text-xl font-semibold">Upload multiple records from spreadsheet</h2>
+        <p className="text-sm">For a preview, literal inscription mappings, missing source facts and duplicate checks, use <Link to="/import" className="link">the staged import workflow</Link>.</p>
         <p className="text-sm text-base-content/70">Excel or CSV files, up to 4 MB. Spreadsheet import currently saves artifact metadata; add transcription text through the editor.</p>
         <form className="space-y-4 mt-3" onSubmit={async event => {
           event.preventDefault();

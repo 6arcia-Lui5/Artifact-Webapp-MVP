@@ -5,15 +5,17 @@ import { useAuth } from '@clerk/react'
 import { useRecord, useDeleteRecord } from '../../hooks/useRecords'
 import { useParams, Link, useNavigate } from 'react-router'
 import { recordFields } from '../components/recordFields'
-import ArtifactImage from '../components/ArtifactImage'
-import { sourceUrl } from '../../lib/artifactImages'
 import InscriptionDetails from '../components/InscriptionDetails'
 import MlReview from '../components/MlReview'
+import ArtifactImages from '../components/ArtifactImages'
+import RecordCuration from '../components/RecordCuration'
+import { useResearchAccess } from '../../hooks/useResearchAccess'
 
 
 function RecordPage() {
   const { id } = useParams();
   const { userId } = useAuth();
+  const access = useResearchAccess();
   const navigate = useNavigate();
 
   const { data: record, isLoading, error } = useRecord(id);
@@ -42,7 +44,7 @@ function RecordPage() {
     );
   }
 
-  const isOwner = userId === record.userId;
+  const isOwner = userId === record.userId || access.data?.role === 'admin';
 
 
   return (
@@ -74,14 +76,7 @@ function RecordPage() {
 
     <div className='grid lg:grid-cols-2 gap-6'>
       {/* IMAGE */}
-      <div className='card bg-base-300'>
-        <figure className='p-4'>
-          <ArtifactImage source={record.imageSourceUrl} name={record.itemName}
-            className='rounded-xl w-full h-80 object-cover' />
-        </figure>
-        {sourceUrl(record.imageSourceUrl) && <a href={sourceUrl(record.imageSourceUrl)}
-          target='_blank' rel='noreferrer' className='link px-4 pb-4'>View image source</a>}
-      </div>
+      <ArtifactImages record={record} isOwner={isOwner} />
 
       <div className='card bg-base-300'>
         <div className='card-body'>
@@ -126,6 +121,7 @@ function RecordPage() {
     </div>
 
     <InscriptionDetails entries={record.inscriptions} />
+    <RecordCuration key={record.id} record={record} isOwner={isOwner} canReadHistory={Boolean(access.data?.canReview)} />
     <MlReview key={`${record.id}-${record.updatedAt}`} record={record} />
 
     {/* Relevant Details */}
@@ -142,7 +138,8 @@ function RecordPage() {
                 <dd className='text-base-content/80 whitespace-pre-wrap break-words'>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</dd>
               </div>;
             })}
-            <div><dt className='font-semibold'>Collection</dt><dd>{record.collection?.title ?? "None"}</dd></div>
+            {(record.dateStart != null || record.dateEnd != null) && <div><dt className='font-semibold'>Searchable date interval</dt><dd>{record.dateStart ?? 'Unknown'} to {record.dateEnd ?? 'Unknown'} (negative years are BCE)</dd></div>}
+            <div><dt className='font-semibold'>Collections</dt><dd><Link to="/collections" className="link">Browse research collections</Link></dd></div>
           </dl>
       </div>
     </div>

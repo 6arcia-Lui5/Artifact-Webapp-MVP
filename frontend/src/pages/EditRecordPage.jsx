@@ -3,10 +3,12 @@ import { useAuth } from "@clerk/react";
 import { useRecord, useUpdateRecord } from "../../hooks/useRecords";
 import ArtifactForm from "../components/ArtifactForm";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useResearchAccess } from '../../hooks/useResearchAccess';
 
 export default function EditRecordPage() {
   const { id } = useParams();
   const { userId } = useAuth();
+  const access = useResearchAccess();
   const navigate = useNavigate();
   const record = useRecord(id);
   const save = useUpdateRecord(id);
@@ -17,9 +19,10 @@ export default function EditRecordPage() {
     {id && <button className="btn btn-outline" onClick={() => record.refetch()}>Try again</button>}
     <Link className="btn btn-primary" to="/profile">My records</Link>
   </div>;
-  if (record.data.userId !== userId) return <div className="max-w-lg mx-auto space-y-4">
-    <h1 className="text-2xl font-semibold">Only the creator can edit this artifact</h1>
-    <p>You can view this record, but changes must be made by its creator.</p>
+  if (record.data.userId !== userId && access.isPending) return <LoadingSpinner />;
+  if (record.data.userId !== userId && access.data?.role !== 'admin') return <div className="max-w-lg mx-auto space-y-4">
+    <h1 className="text-2xl font-semibold">Editing is limited to the creator or an administrator</h1>
+    <p>You can view this record. Ask its creator or an administrator to make changes.</p>
     <Link className="btn btn-primary" to={`/record/${id}`}>View artifact</Link>
   </div>;
   return <div className="max-w-3xl mx-auto space-y-5">
