@@ -33,7 +33,7 @@ export default function CollectionDetailPage() {
     {isOwner ? <div className="flex flex-wrap gap-2"><button className="btn btn-sm" onClick={() => { update.reset(); setEditing(true); }}>Edit collection</button><Link to="/search" className="btn btn-sm btn-primary">Find records to add</Link><button className="btn btn-sm btn-outline btn-error" disabled={remove.isPending} onClick={deleteCollection}>Delete collection</button></div> : null}
     {remove.isError ? <QueryError error={remove.error} /> : null}
     {editing && isOwner ? <CollectionForm key={id} initial={collection.data} mutation={update} onSave={save} onCancel={() => setEditing(false)} /> : null}
-    <CatalogFilters key={`${id}-${location.searchKey}`} params={location.params} onSubmit={location.update} onClear={location.clear} />
-    {location.dateError ? <p role="alert" className="alert alert-error">{location.dateError} Correct the dates above or clear filters.</p> : <CatalogResults key={`${id}-${location.searchKey}`} query={records} params={location.params} update={location.update} collection={collection.data} isOwner={isOwner} />}
+    <CatalogFilters key={`filters-${id}-${location.searchKey}`} params={location.params} onSubmit={location.update} onClear={location.clear} />
+    {location.dateError ? <p role="alert" className="alert alert-error">{location.dateError} Correct the dates above or clear filters.</p> : <CatalogResults key={`results-${id}-${location.searchKey}`} query={records} params={location.params} update={location.update} collection={collection.data} isOwner={isOwner} />}
   </div>;
 }

@@ -41,6 +41,7 @@ test('original inscriptions are searchable, filters survive reload and exports r
   await page.getByLabel('Language', { exact: true }).fill('Greek');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByRole('heading', { name: original.itemName, exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Search records', exact: true })).toHaveCount(1);
   expect(new URL(page.url()).searchParams.get('q')).toBe(word);
   await page.reload();
   await expect(page.getByRole('textbox', { name: 'Search records', exact: true })).toHaveValue(word);
