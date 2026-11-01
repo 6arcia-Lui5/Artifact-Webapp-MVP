@@ -1,16 +1,16 @@
-# React + Vite
+# Catalog frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React/Vite interface for the Handheld Words artifact catalog. It includes search, artifact editing, research collections, import previews, submission review, photographs and optional ML tools.
 
-Currently, two official plugins are available:
+Follow the [project setup](../README.md#run-the-catalog-locally) to configure Clerk and the backend before starting this app.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+From this directory:
 
-## React Compiler
+```sh
+npm ci
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The development server uses [localhost:5173](http://localhost:5173). Set `VITE_API_URL` and `VITE_CLERK_PUBLISHABLE_KEY` in `.env` as described in the project README.
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Checks: `npm run build`, `npm run lint`, and `npm run test:unit`. Browser tests require the accounts and services described in the [development checks](../README.md#development-checks).
