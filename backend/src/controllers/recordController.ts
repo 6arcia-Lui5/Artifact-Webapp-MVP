@@ -3,7 +3,7 @@ import * as queries from "../db/queries"
 import { getAuth } from "@clerk/express"
 import * as XLSX from "xlsx"
 import { db } from "../db";
-import { objectTypes } from "../db/schema";
+import { NewRecord, objectTypes } from "../db/schema";
 
 // Field map (Excel to DB)
 const FIELD_MAP: Record<string, string> = {
@@ -155,84 +155,146 @@ export const getMyRecords = async (req: Request, res: Response) => {
 
 //New create record:
 
-export const createRecord = async (req: Request, res: Response) => {
+
+export const createRecord = async (
+    req: Request,
+    res: Response
+) => {
     try {
         const { userId } = getAuth(req);
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const payload = { userId, ...req.body };
+        if (!userId) {
+            return res.status(401).json({
+                error: "Unauthorized",
+            });
+        }
 
-        const record = await queries.createRecord(payload);
+        // Never accept ownership or database-managed fields
+        // from the client.
+        const {
+            userId: ignoredUserId,
+            id,
+            createdAt,
+            updatedAt,
+            ...recordData
+        } = req.body;
 
-        res.status(201).json(record);
+        const record = await queries.createRecord({
+            ...recordData,
+            userId,
+        });
+
+        return res.status(201).json(record);
     } catch (error) {
         console.error("Error creating record:", error);
-        res.status(500).json({ error: "Failed to create record" });
+
+        return res.status(500).json({
+            error: "Failed to create record",
+        });
     }
 };
-
-// Update an existing record
-// export const updateRecord = async (req: Request, res: Response) => {
-//     try {
-//         const { userId } = getAuth(req);
-//         if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-//         const { id } = req.params;
-//         const { title, description, imageUrl, date, material, dimensions, classification, credit, objectNumber, collectionId } = req.body;
-
-//         const existingRecord = await queries.getRecordById(id.toString());
-//         if (!existingRecord) {
-//             res.status(404).json({ error: "Record not found" });
-//             return;
-//         }
-
-//         if (existingRecord.userId !== userId) {
-//             res.status(403).json({ error: "You can only update your own records" });
-//             return;
-//         }
-
-//         const record = await queries.updateRecord(id.toString(), {
-//             date,
-//             title,
-//             description,
-//             material,
-//             dimensions,
-//             classification,
-//             credit,
-//             objectNumber,
-//             collectionId,
-//             imageUrl,
-//         })
-
-//         res.status(200).json(record);
-//     } catch (error) {
-//         console.error("Error updating records:", error);
-//         res.status(500).json({error: "Failed to update records" })
-//     }
-// }
 
 //New update existing record
-export const updateRecord = async (req: Request, res: Response) => {
+
+export const updateRecord = async (
+    req: Request,
+    res: Response
+) => {
     try {
         const { userId } = getAuth(req);
-        if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-        const id  = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;;
+        if (!userId) {
+            return res.status(401).json({
+                error: "Unauthorized",
+            });
+        }
+
+        const id = req.params.id;
+
+        if (!id || Array.isArray(id)) {
+            return res.status(400).json({
+                error: "Invalid record ID",
+            });
+        }
 
         const existing = await queries.getRecordById(id);
-        if (!existing) return res.status(404).json({ error: "Record not found" });
 
-        if (existing.userId !== userId)
-            return res.status(403).json({ error: "You can only update your own records" });
+        if (!existing) {
+            return res.status(404).json({
+                error: "Record not found",
+            });
+        }
 
-        const updated = await queries.updateRecord(id, req.body);
+        // Only the original publisher can directly edit the record.
+        if (existing.userId !== userId) {
+            return res.status(403).json({
+                error: "You can only update your own records",
+            });
+        }
 
-        res.status(200).json(updated);
+        // Explicitly permitted fields for direct owner edits.
+        const allowedFields = new Set([
+            "itemName",
+            "hhwIdentifier",
+            "objectTypeId",
+            "museumName",
+            "museumDepartment",
+            "museumCity",
+            "museumCountry",
+            "museumNumber",
+            "museumDescription",
+            "dateCulturePeriod",
+            "datingBasis",
+            "issuingAuthority",
+            "productionPlace",
+            "findspot",
+            "acquisitionDate",
+            "excavationInformation",
+            "materials",
+            "technique",
+            "dimensions",
+            "thickness",
+            "weight",
+            "scientificTesting",
+            "inscribed",
+            "imagery",
+            "imageryDescription",
+            "imageryInscriptionPlacement",
+            "imageSourceUrl",
+            "imageType",
+            "bibliography",
+            "imageCopyrightDetails",
+            "collectionId",
+        ]);
+
+        const updateData = Object.fromEntries(
+            Object.entries(req.body).filter(([key]) =>
+                allowedFields.has(key)
+            )
+        );
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                error: "No valid fields provided for update",
+            });
+        }
+
+        const updated = await queries.updateRecord(
+            id,
+            updateData as Partial<NewRecord>
+        );
+
+        return res.status(200).json(updated);
+
     } catch (error) {
         console.error("Error updating record:", error);
-        res.status(500).json({ error: "Failed to update record" });
+
+        return res.status(500).json({
+            error: "Failed to update record",
+        });
     }
 };
+
 
 // Delete records
 export const deleteRecord = async (req: Request, res: Response) => {
@@ -462,6 +524,41 @@ export const importRecords = async (req: Request, res: Response) => {
 
         return res.status(500).json({
             error: "Failed to import records",
+        });
+    }
+};
+
+
+// Get approved modification history for a record
+export const getRecordVersions = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const id = req.params.id;
+
+        if (!id || Array.isArray(id)) {
+            return res.status(400).json({
+                error: "Invalid record ID",
+            });
+        }
+
+        const record = await queries.getRecordById(id);
+
+        if (!record) {
+            return res.status(404).json({
+                error: "Record not found",
+            });
+        }
+
+        const versions = await queries.getRecordVersions(id);
+
+        return res.status(200).json(versions);
+    } catch (error) {
+        console.error("Error getting record versions:", error);
+
+        return res.status(500).json({
+            error: "Failed to get record history",
         });
     }
 };

@@ -53,6 +53,8 @@ import CreatePage from "./pages/CreatePage";
 import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
 import SearchPage from "./pages/SearchPage";
+import AboutPage from "./pages/AboutPage";
+import ModificationReviewPage from "./pages/ModificationReviewPage";
 
 import RequireSignIn from "./components/RequireSignIn";
 import AppLayout from "./components/AppLayout";
@@ -76,6 +78,9 @@ function App() {
           <Route path="/edit/:id" element={<EditRecordPage />} />
           <Route path="/edit" element={<EditRecordPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/modify/:id" element={<EditRecordPage />} />
+          <Route path="/modifications/:id/review" element={<ModificationReviewPage />} />
         </Route>
       </Route>
 

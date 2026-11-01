@@ -69,3 +69,7 @@
   .auth-artifact { display: none; }
   .auth-form { width: 100%; max-width: 400px; justify-self: center; }
 }
+
+.cl-card.cl-signIn-start {
+  padding: 24px;
+}
