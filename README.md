@@ -30,7 +30,9 @@ The catalog requires an approved Clerk account. Contributors can edit their own 
 
 For photo transcription, choose **Edit**, then **Transcribe a photo**. Choose a local image or **Use catalog image**, select the language and inscription area, then choose **Run transcription**. Correct the result beside the photograph, choose **Add transcription**, and save the artifact.
 
-| Tool | What it does | What it needs |
+The table below describes local development configurations. The hosted demonstration uses two Workers AI vision readers and hosted baseline date/region inference; it has no dedicated OCR engine. See [the current hosted setup](docs/hosted-demo.md).
+
+| Tool | What it does | What it needs locally |
 | --- | --- | --- |
 | On-device OCR | Produces a basic text draft in the browser | Language assets download on first use; no model server |
 | Vision service | Reads a photograph with a local vision model | A configured, running Ollama-compatible service |
@@ -39,7 +41,7 @@ For photo transcription, choose **Edit**, then **Transcribe a photo**. Choose a 
 
 Compared readings support Latin, Ancient Greek and English. The single vision reader also offers Hebrew. Recognition does not attach the photograph to the record or save inscription text automatically. Date/region checks do not change stored metadata.
 
-**The researcher-ready ML setup is unfinished.** There is no packaged Mac launcher or one-click local companion. The stronger demonstration ran on a desktop GPU; fast performance on low-end laptops has not been established. Curved and damaged inscriptions can produce incorrect text, including conflicting Greek readings. A representative researcher-checked accuracy evaluation is still needed.
+**The packaged local companion is unfinished.** There is no packaged Mac launcher or one-click local companion. The stronger local demonstration ran on a desktop GPU; fast performance on low-end laptops has not been established. Curved and damaged inscriptions can produce incorrect text, including conflicting Greek readings. A representative researcher-checked accuracy evaluation is still needed.
 
 Setup and measurements: [photo transcription](docs/transcription-pipeline.md), [CPU OCR](ocr/README.md), [date/region models](ml/README.md), [photo-reading limitations](docs/photo-transcription-evaluation.md).
 
@@ -114,7 +116,7 @@ The catalog works without the optional model services. To enable date/region che
 
 ## Hosting and cost
 
-The application uses React/Vite, Express/TypeScript, PostgreSQL/Drizzle and Clerk. The existing hosted demo is at [artifact-webapp-demo.vercel.app](https://artifact-webapp-demo.vercel.app); it currently runs an older build than this research-catalog branch.
+The application uses React/Vite, Express/TypeScript, PostgreSQL/Drizzle and Clerk. The current hosted demo is at [artifact-webapp-demo.vercel.app](https://artifact-webapp-demo.vercel.app). The research catalog and hosted storage/AI configuration were finalized on November 1, 2026; see [the current hosted setup](docs/hosted-demo.md). A November 1 check confirmed website availability, anonymous API denial, and hosted baseline inference. These endpoint checks do not establish client acceptance or sustained uptime.
 
 For the research catalog deployment:
 
@@ -124,7 +126,7 @@ For the research catalog deployment:
 - Host model services separately if recognition or date/region checks must work from the website. A hosted backend cannot reach a researcher's localhost. A local helper currently produces text for review and manual transfer; the integrated local-worker connection is not implemented.
 - Back up PostgreSQL and uploaded image files separately, and verify recovery before relying on the catalog as the only research archive.
 
-Museum imports keep image links rather than copying every original. Free provider allowances can cover a small catalog, but storage, traffic and ML compute are not guaranteed to remain free. Open models avoid per-image API charges when run locally; they still need suitable hardware. No always-available free hosted ML service has been provisioned.
+Museum imports keep image links rather than copying every original. Free provider allowances can cover a small catalog, but storage, traffic and ML compute are not guaranteed to remain free. Open models avoid per-image API charges when run locally; they still need suitable hardware. The hosted demonstration now has baseline date/region inference and two vision readers. No dedicated OCR engine is hosted. Provider limits and service availability still apply; no continuous-availability guarantee is claimed.
 
 Configuration and limits: [backend setup](backend/RESEARCH_API.md), [image storage and cost](docs/image-storage.md), [ML hosting options](docs/photo-transcription-hosting.md).
 
@@ -133,7 +135,7 @@ Configuration and limits: [backend setup](backend/RESEARCH_API.md), [image stora
 - Transcription outputs require review. Successful processing or agreement between readers does not establish accuracy.
 - The current import duplicate check can miss an artifact entered manually and later imported from a museum. Inspect previews before committing.
 - Museum image links can change or disappear. Preserve permitted originals when an external link is insufficient.
-- The Mac launcher, laptop performance validation and final hosted storage/ML configuration remain unfinished.
+- The Mac launcher, target-laptop performance validation, client acceptance and demonstrated backup recovery remain unfinished. Hosted storage/AI configuration is documented in [the current setup](docs/hosted-demo.md).
 
 ## Development checks
 
@@ -158,3 +160,11 @@ Browser checks use real Clerk test accounts. For write-workflow checks, run `npm
 - `ml`: date/region models and service.
 - `ocr`: CPU photo recognition service.
 - `scripts`: local transcription and evaluation tools.
+
+## Sprint 5 implementation and tracking
+
+The [current Kanban view](https://github.com/users/6arcia-Lui5/projects/9/views/6) reconciles October implementation and dated November 1 follow-up against commit, PR and test evidence. Private user management, search, corpus gathering, editing, imports, collections/history, private photographs, moderation and assisted-reading integration are recorded as completed development. Client acceptance and bounded remaining work have separate issues.
+
+The November 1 verification passed both builds, frontend lint, 128 backend tests (one PostgreSQL-dependent test skipped) and 48 frontend unit tests. A fresh committed-source checkout installed locked dependencies and built both applications without copied configuration or credentials. Runtime database/account provisioning was outside that fresh-install check. The initial concurrent backend test run hit one short stub timeout; a serial rerun passed unchanged.
+
+The [Sprint 5 documentation](https://github.com/6arcia-Lui5/CPTS-421-423-Captsone-Documentation/tree/codex/sprint-5-reconciliation/Sprints/Sprint_5) contains the report, presentation and evidence. The recorded local walkthrough and historical deep-model metrics are separate from the current hosted baseline model.
