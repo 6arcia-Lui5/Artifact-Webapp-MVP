@@ -132,6 +132,7 @@ Configuration and limits: [backend setup](backend/RESEARCH_API.md), [image stora
 
 ## Known limitations
 
+- The shared catalog retains seven legacy/test records whose source fields and image links still need reconciliation against the original workbook. Existing rows were not rewritten by the newer import validation; a value such as `Colour photo` is rejected as a new image URL. Preserve source evidence and audit legacy rows before client handoff; see [issue #54](https://github.com/6arcia-Lui5/CPTS-421-423-Captsone-Documentation/issues/54).
 - Transcription outputs require review. Successful processing or agreement between readers does not establish accuracy.
 - The current import duplicate check can miss an artifact entered manually and later imported from a museum. Inspect previews before committing.
 - Museum image links can change or disappear. Preserve permitted originals when an external link is insufficient.
