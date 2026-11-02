@@ -292,7 +292,7 @@ export default function EditRecordPage() {
           },
           body: JSON.stringify({
             changes: proposedChanges.map((change) => ({
-              fieldKey: change.fieldKey,
+              fieldName: change.fieldKey,
               proposedValue: change.proposedValue,
             })),
           }),

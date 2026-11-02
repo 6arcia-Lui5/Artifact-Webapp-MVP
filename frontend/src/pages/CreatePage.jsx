@@ -495,7 +495,7 @@ function CreatePage() {
 
                             {!required && (
                               <span className="text-base-content/50 ml-1 text-xs">
-                                (optional)
+                                (If Known)
                               </span>
                             )}
                           </span>

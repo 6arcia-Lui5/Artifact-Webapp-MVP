@@ -52,6 +52,8 @@ These are deliberately simple development fixtures; the setup script refuses pro
 Only these five managed accounts skip Clerk's new-device email challenge. Other users keep their existing checks.
 Their original primary test email addresses remain attached, preserving the same users and artifact ownership.
 
+The existing Google-linked account **luisgarciavv7@gmail.com** is also listed in the development login panel. The seed script only verifies that it exists in the configured Clerk development instance; it does not reset its password or change its Google sign-in or verification settings.
+
 At `/login`, expand **Developer test accounts** and choose an account to fill its short email.
 The account selector is available only in development and is removed from production builds.
 The local account sheet is `.local/DEV-ACCOUNTS.md`; the machine-readable file is `.local/dev-accounts.json`.

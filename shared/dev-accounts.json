@@ -23,5 +23,10 @@
     "name": "Developer 5",
     "email": "dev5@example.com",
     "verificationEmail": "artifact.dev5+clerk_test@example.com"
+  },
+  {
+    "name": "Luis Garcia",
+    "email": "luisgarciavv7@gmail.com",
+    "existingAccount": true
   }
 ]

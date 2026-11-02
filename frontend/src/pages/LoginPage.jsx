@@ -488,9 +488,9 @@ export default function LoginPage({ mode = "login" }) {
 
                 <div className="collapse-content">
                   <p className="text-xs text-base-content/60 mb-3">
-                    Select an account to automatically fill its
-                    email address. All five accounts share one
-                    password. See the local developer account sheet.
+                    Select an account to fill its email address. The five
+                    numbered demo accounts share a password; Luis signs in
+                    with the existing Google account.
                   </p>
 
                   <div className="flex flex-col gap-2">
@@ -528,9 +528,9 @@ export default function LoginPage({ mode = "login" }) {
                   </div>
 
                   <p className="text-xs text-base-content/50 mt-3">
-                    Available only in development.
-                    No email verification code is needed
-                    for these five test accounts.
+                    Available only in development. The five numbered demo
+                    accounts skip the new-device email check; other accounts
+                    use their existing sign-in and verification settings.
                   </p>
                 </div>
               </div>

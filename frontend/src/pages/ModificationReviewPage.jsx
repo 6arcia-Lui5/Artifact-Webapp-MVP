@@ -61,7 +61,7 @@ const ModificationReviewPage = () => {
     setError("");
 
     try {
-      const data = await apiRequest(`/api/modifications/${id}`);
+      const data = await apiRequest(`/modifications/${id}`);
 
       setRequest(
         data.request ||
@@ -164,7 +164,7 @@ const ModificationReviewPage = () => {
 
     try {
       await apiRequest(
-        `/api/modifications/${id}/changes/${changeId}`,
+        `/modifications/${id}/changes/${changeId}`,
         {
           method: "PATCH",
           body: JSON.stringify({

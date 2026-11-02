@@ -19,6 +19,17 @@ async function main() {
   const resetPasswords = process.argv.includes("--reset-passwords");
 
   for (const preset of presets) {
+    if (preset.existingAccount) {
+      const { data } = await client.users.getUserList({ emailAddress: [preset.email], limit: 1 });
+      const user = data[0];
+      if (!user) {
+        throw new Error(`Existing developer account ${preset.email} was not found in the configured Clerk development instance.`);
+      }
+      // Existing accounts retain their current authentication methods and credentials.
+      console.log(`${preset.name}: found in Clerk development instance (existing sign-in preserved)`);
+      continue;
+    }
+
     // Keep the original primary test email for Clerk's 424242 verification flow.
     const { data } = await client.users.getUserList({ emailAddress: [preset.verificationEmail], limit: 1 });
     let user = data[0];
