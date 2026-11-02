@@ -10,6 +10,7 @@ import { upload } from "../middleware/upload";
 const router = Router();
 
 // Retrieve records
+router.get("/stats", recordController.getPublicStats);
 router.get("/", recordController.getAllRecords);
 router.get("/my", requireApiAuth, recordController.getMyRecords);
 router.get("/search", recordController.searchRecords);

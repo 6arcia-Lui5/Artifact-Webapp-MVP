@@ -12,6 +12,11 @@ export const getAllRecords = async () => {
     return data;
 }
 
+export const getPublicStats = async () => {
+    const { data } = await api.get("/records/stats");
+    return data;
+}
+
 export const getRecordById = async (id) => {
     const { data } = await api.get(`/records/${id}`);
     return data;

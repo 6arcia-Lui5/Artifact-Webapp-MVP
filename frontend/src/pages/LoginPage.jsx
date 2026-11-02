@@ -1,5 +1,6 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SignIn, SignUp, useAuth } from "@clerk/react";
 import {
   ArrowRightIcon,
@@ -9,7 +10,6 @@ import {
   CompassIcon,
   DatabaseIcon,
   Globe2Icon,
-  LandmarkIcon,
   SearchIcon,
   ShieldCheckIcon,
   SparklesIcon,
@@ -25,7 +25,7 @@ import accounts from "../../../shared/dev-accounts.json";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 // Adjust this import path to match the location of your existing hook.
-import { useRecords } from "../../hooks/useRecords";
+import { getPublicStats } from "../../lib/api";
 
 // Validate redirect destinations to prevent unsafe redirects.
 function safeDestination(value) {
@@ -81,26 +81,11 @@ export default function LoginPage({ mode = "login" }) {
     import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_") &&
     !signup;
 
-  // Collection statistics
-  const {
-    data: records = [],
-    isLoading: recordsLoading,
-    isError: recordsError,
-  } = useRecords();
-
-  const contributorCount = useMemo(() => {
-    const contributors = new Set();
-
-    records.forEach((record) => {
-      const userId = record.userId || record.user?.id;
-
-      if (userId) {
-        contributors.add(userId);
-      }
-    });
-
-    return contributors.size;
-  }, [records]);
+  const { data: stats, isPending: statsLoading, isError: statsError } = useQuery({
+    queryKey: ["publicStats"],
+    queryFn: getPublicStats,
+    staleTime: 60_000,
+  });
 
   if (!isLoaded) return <LoadingSpinner />;
 
@@ -155,11 +140,6 @@ export default function LoginPage({ mode = "login" }) {
         <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 items-center p-6 sm:p-10 lg:p-12">
 
           <div className="lg:col-span-3">
-            <span className="badge badge-primary badge-outline gap-2 mb-5 py-3">
-              <LandmarkIcon className="size-4" />
-              Handheld Words
-            </span>
-
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
               Every artifact has a story.
               <span className="text-primary block">
@@ -236,9 +216,9 @@ export default function LoginPage({ mode = "login" }) {
               </p>
 
               <p className="text-3xl font-bold">
-                {recordsLoading || recordsError
+                {statsLoading || statsError || !stats
                   ? "—"
-                  : records.length.toLocaleString()}
+                  : Number(stats.recordCount).toLocaleString()}
               </p>
 
               <p className="text-xs text-base-content/50">
@@ -260,9 +240,9 @@ export default function LoginPage({ mode = "login" }) {
               </p>
 
               <p className="text-3xl font-bold">
-                {recordsLoading || recordsError
+                {statsLoading || statsError || !stats
                   ? "—"
-                  : contributorCount.toLocaleString()}
+                  : Number(stats.contributorCount).toLocaleString()}
               </p>
 
               <p className="text-xs text-base-content/50">

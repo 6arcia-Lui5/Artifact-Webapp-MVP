@@ -2,8 +2,9 @@ import type { Request, Response } from "express"
 import * as queries from "../db/queries"
 import { getAuth } from "@clerk/express"
 import * as XLSX from "xlsx"
+import { count, sql } from "drizzle-orm";
 import { db } from "../db";
-import { NewRecord, objectTypes } from "../db/schema";
+import { NewRecord, objectTypes, records } from "../db/schema";
 
 // Field map (Excel to DB)
 const FIELD_MAP: Record<string, string> = {
@@ -64,6 +65,20 @@ export const getAllRecords = async (req: Request, res: Response) => {
     } catch (error) {
         console.error("Error getting records:", error);
         res.status(500).json({error: "Failed to get records" })
+    }
+}
+
+// Return aggregate totals for the public landing page without sending record data.
+export const getPublicStats = async (_req: Request, res: Response) => {
+    try {
+        const [stats] = await db.select({
+            recordCount: count(),
+            contributorCount: sql<number>`count(distinct ${records.userId})::int`,
+        }).from(records);
+        res.status(200).json(stats ?? { recordCount: 0, contributorCount: 0 });
+    } catch (error) {
+        console.error("Error getting public collection stats:", error);
+        res.status(500).json({ error: "Failed to get collection statistics" });
     }
 }
 
