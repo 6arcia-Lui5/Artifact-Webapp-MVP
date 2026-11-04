@@ -5,6 +5,7 @@ import { useCollectionMutation, useResearchCollections } from "../../../hooks/us
 import { downloadResearchRecords, researchError } from "../../../lib/researchApi";
 import { QueryError, CatalogPagination, CatalogSort } from "./CatalogFeedback";
 import RecordMetadata from "./RecordMetadata";
+import ResearchImage from "../ResearchImage";
 
 function SelectionActions({ ids, params, onDone }) {
   const { userId } = useAuth();
@@ -30,19 +31,20 @@ function SelectionActions({ ids, params, onDone }) {
     } catch (failure) { setError(researchError(failure)); }
   }
   return <div className="space-y-3">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm">{ids.length} selected on this page</span>
+    <details><summary className="cursor-pointer text-sm font-medium">Export results</summary><div className="flex flex-wrap gap-2 mt-3">
+      <button className="btn btn-sm btn-outline" disabled={exporting} onClick={() => download("csv", false)}>Export results CSV</button>
+      <button className="btn btn-sm btn-outline" disabled={exporting} onClick={() => download("json", false)}>Export results JSON</button>
+      </div></details>
+    {ids.length > 0 && <><div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm">{ids.length} selected</span>
       <button className="btn btn-sm btn-outline" disabled={!ids.length || exporting} onClick={() => download("csv", true)}>Selected CSV</button>
       <button className="btn btn-sm btn-outline" disabled={!ids.length || exporting} onClick={() => download("json", true)}>Selected JSON</button>
-      <button className="btn btn-sm btn-ghost" disabled={exporting} onClick={() => download("csv", false)}>Export results CSV</button>
-      <button className="btn btn-sm btn-ghost" disabled={exporting} onClick={() => download("json", false)}>Export results JSON</button>
     </div>
-    <p className="text-xs text-base-content/60">Exports use the current filters and the server export limit. Selection resets when you change page or filters.</p>
     {ownCollections.length ? <div className="flex flex-wrap items-center gap-2">
       <select aria-label="Your collection" className="select select-bordered select-sm max-w-full" value={collectionId} onChange={event => setCollectionId(event.target.value)}><option value="">Choose your collection</option>{ownCollections.map(collection => <option key={collection.id} value={collection.id}>{collection.title}</option>)}</select>
       <button className="btn btn-sm btn-primary" disabled={!ids.length || !collectionId || add.isPending} onClick={attach}>{add.isPending ? "Adding…" : "Add selected to collection"}</button>
     </div> : collections.isPending ? <p className="text-xs">Loading your collections…</p> : !collections.isError ? <Link to="/collections" className="link text-sm">Create a collection to organize selected records</Link> : null}
-    {collections.isError ? <QueryError error={collections.error} retry={() => collections.refetch()} /> : null}
+    {collections.isError ? <QueryError error={collections.error} retry={() => collections.refetch()} /> : null}</>}
     {message ? <p role="status" className="text-sm">{message}</p> : null}
     {error ? <p role="alert" className="text-error">{error}</p> : null}
   </div>;
@@ -67,11 +69,12 @@ export default function CatalogResults({ query, params, update, collection, isOw
       <SelectionActions ids={selected} params={params} onDone={() => setSelected([])} />
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="checkbox checkbox-sm" checked={items.every(record => selected.includes(record.id))} onChange={event => setSelected(event.target.checked ? items.map(record => record.id) : [])} />Select all records on this page</label>
       <div className="flex flex-col gap-3">{items.map(record => <div key={record.id} className="card bg-base-200 shadow-sm"><div className="card-body p-4">
-        <div className="flex items-start gap-3"><input type="checkbox" className="checkbox checkbox-sm mt-1" aria-label={`Select ${record.itemName}`} checked={selected.includes(record.id)} onChange={event => setSelected(previous => event.target.checked ? [...previous, record.id] : previous.filter(id => id !== record.id))} /><div className="flex-1 min-w-0">
+        <div className="flex items-start gap-3"><input type="checkbox" className="checkbox checkbox-sm mt-1 shrink-0" aria-label={`Select ${record.itemName}`} checked={selected.includes(record.id)} onChange={event => setSelected(previous => event.target.checked ? [...previous, record.id] : previous.filter(id => id !== record.id))} /><Link to={`/record/${record.id}`} aria-label={`View photograph of ${record.itemName}`} className="shrink-0"><ResearchImage record={record} className="w-16 h-20 sm:w-24 sm:h-24 object-contain rounded-lg bg-base-100" /></Link><div className="flex-1 min-w-0">
           <h3 className="card-title text-base"><Link className="link-hover" to={`/record/${record.id}`}>{record.itemName}</Link></h3>
           {record.objectType?.name ? <span className="badge badge-outline badge-sm mt-1">{record.objectType.name}</span> : null}
           {record.museumDescription ? <p className="text-sm text-base-content/60 line-clamp-2 my-2">{record.museumDescription}</p> : null}
-          <RecordMetadata record={record} />
+          <p className="text-sm text-base-content/80">{record.museumName}</p>
+          <details className="mt-2"><summary className="cursor-pointer text-sm">Record details</summary><div className="mt-2"><RecordMetadata record={record} /></div></details>
           <div className="card-actions justify-end mt-2"><Link to={`/record/${record.id}`} className="btn btn-ghost btn-xs">View</Link>{isOwner ? <button className="btn btn-ghost btn-xs text-error" disabled={remove.isPending} onClick={() => detach(record)}>Remove from collection</button> : null}</div>
         </div></div>
       </div></div>)}</div>

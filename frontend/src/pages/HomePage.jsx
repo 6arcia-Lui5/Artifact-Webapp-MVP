@@ -4,7 +4,6 @@ import { Link } from 'react-router';
 import LoadingSpinner from '../components/LoadingSpinner';
 import RecordCard from '../components/RecordCard';
 import { CatalogPagination, CatalogSort, QueryError } from '../components/research/CatalogFeedback';
-import RecordMetadata from '../components/research/RecordMetadata';
 
 function HomePage() {
   const location = useCatalogLocation();
@@ -61,7 +60,7 @@ function HomePage() {
         ) : (
           <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
             {records.map((record) => (
-              <div key={record.id} className="space-y-2"><RecordCard record={record} /><RecordMetadata record={record} /></div>
+              <RecordCard key={record.id} record={record} />
             ))}
           </div>
         )}

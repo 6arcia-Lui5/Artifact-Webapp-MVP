@@ -111,6 +111,7 @@ test("stored-record checks join inscriptions and forward the listed dating and p
   });
   assert.deepEqual(await response.json(), {
     recordId: "one", listedDating: "2nd-3rd century CE", listedRegion: "Italy", dateNote: null, ...prediction,
+    comparison: { date: { compared: true, reason: null }, region: { compared: true, reason: null } },
   });
 });
 
@@ -156,5 +157,24 @@ test("unrecognized and out-of-range dates are explicitly skipped instead of prod
     assert.equal(received.body.not_before, null);
     assert.equal(received.body.not_after, null);
     assert.match((await response.json()).dateNote, /date metadata was not checked/);
+  }
+});
+
+test("stored checks distinguish absent, unsupported and partial comparisons without parsing note text", async () => {
+  for (const [dating, place, expectedDate, expectedRegion] of [
+    [null, null, 'missing', 'missing'],
+    ['unrecorded era', 'Italy', 'unrecognized', null],
+    ['1800 CE', null, 'outside_range', 'missing'],
+    ['100-200 CE', 'unknown place', null, 'unrecognized'],
+  ]) {
+    storedRecord = { id: 'one', dateCulturePeriod: dating, productionPlace: place, inscriptions: [{ content: 'D M VIXIT' }] };
+    if (place === 'unknown place') prediction.region_note = 'Unknown model region';
+    try {
+      const response = await check('/api/ml/records/one/check');
+      assert.equal(response.status, 200);
+      const result = await response.json();
+      assert.deepEqual(result.comparison.date, { compared: expectedDate === null, reason: expectedDate });
+      assert.deepEqual(result.comparison.region, { compared: expectedRegion === null, reason: expectedRegion });
+    } finally { delete prediction.region_note; }
   }
 });

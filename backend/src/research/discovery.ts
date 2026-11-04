@@ -1,4 +1,5 @@
 import type { Router } from "express";
+import type { Pool } from "pg";
 import { ApiError } from "./validation";
 import { boundedJson, normalizeMuseum } from "./sources";
 
@@ -128,14 +129,26 @@ export async function searchMuseums(provider: unknown, value: unknown, fetcher: 
     }
 }
 
-export function registerDiscovery(router: Router) {
+export async function withResearchDecisions(pool: Pick<Pool, "query">, userId: string, result: Awaited<ReturnType<typeof searchMuseums>>) {
+    const ids = result.items.slice(0, discoveryLimits.maxResults).map(item => item.objectId);
+    const saved = (await pool.query(`SELECT id,source_object_id AS "objectId",decision,revision,previous_decision AS "previousDecision"
+        FROM research_discoveries WHERE user_id=$1 AND source_provider=$2 AND source_object_id=ANY($3::text[])
+        LIMIT $4`, [userId, result.provider, ids, discoveryLimits.maxResults])).rows;
+    const decisions = new Map(saved.map(({ objectId, ...state }) => [objectId, state]));
+    return { ...result, items: result.items.slice(0, discoveryLimits.maxResults).map(item => ({ ...item, researchList: decisions.get(item.objectId) ?? null })) };
+}
+
+export function registerDiscovery(router: Router, pool: Pool) {
     router.get("/discovery/search", async (req, res) => {
         if (Object.keys(req.query).some(key => !["provider", "q"].includes(key))) throw new ApiError(400, "Only provider and q are supported.");
         const controller = new AbortController();
         const cancel = () => { if (!res.writableEnded) controller.abort(); };
         res.on("close", cancel);
         res.setHeader("Cache-Control", "no-store");
-        try { res.json(await searchMuseums(req.query.provider, req.query.q, fetch, { signal: controller.signal })); }
+        try {
+            const result = await searchMuseums(req.query.provider, req.query.q, fetch, { signal: controller.signal });
+            res.json(await withResearchDecisions(pool, res.locals.userId, result));
+        }
         finally { res.off("close", cancel); }
     });
 }

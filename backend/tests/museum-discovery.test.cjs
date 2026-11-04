@@ -7,7 +7,7 @@ for (const [name, exports] of [['@clerk/express', { getAuth: req => ({ userId: r
   const filename = require.resolve(name);
   require.cache[filename] = { id: filename, filename, loaded: true, exports };
 }
-const { discoveryQueries, discoveryRoots, discoveryLimits, searchMuseums } = require('../dist/research/discovery');
+const { discoveryQueries, discoveryRoots, discoveryLimits, searchMuseums, withResearchDecisions } = require('../dist/research/discovery');
 const { requireSiteAccess } = require('../dist/middleware/requireSiteAccess');
 const { createResearchRouter } = require('../dist/research/router');
 
@@ -128,11 +128,34 @@ test('shared deadline cancels active requests and prevents remaining calls; unsa
   assert.equal(discoveryLimits.maxRequests, 20);
 });
 
-test('authenticated route searches without writes then selected ID enters existing preview without importing', async () => {
+test('personal decision lookup is bounded to displayed identities and owner/provider parameters', async () => {
+  const result = { provider: 'met', items: Array.from({ length: 20 }, (_, index) => ({ objectId: String(index + 1) })) };
+  const owner = "owner' OR true --";
+  let calls = 0;
+  const pool = { query: async (sql, args) => {
+    calls++;
+    assert(!sql.includes(owner));
+    assert.match(sql, /user_id=\$1 AND source_provider=\$2 AND source_object_id=ANY\(\$3::text\[\]\)/);
+    assert.deepEqual(args, [owner, 'met', Array.from({ length: 12 }, (_, index) => String(index + 1)), 12]);
+    return { rows: [{ objectId: '1', id: 'candidate-id', decision: 'dismissed', revision: 3, previousDecision: 'kept' }] };
+  } };
+  const annotated = await withResearchDecisions(pool, owner, result);
+  assert.equal(calls, 1); assert.equal(annotated.items.length, 12);
+  assert.deepEqual(annotated.items[0].researchList, { id: 'candidate-id', decision: 'dismissed', revision: 3, previousDecision: 'kept' });
+  assert.equal(annotated.items[1].researchList, null);
+  assert.equal(result.items[0].researchList, undefined);
+});
+
+test('authenticated route remembers decisions without writes then selected ID enters existing preview without importing', async () => {
   const originalFetch = global.fetch;
-  let upstream = 0, previewWrites = 0, recordWrites = 0;
+  let upstream = 0, previewWrites = 0, recordWrites = 0, missingMigration = false;
   const query = async (sql, args = []) => {
     if (sql.startsWith('SELECT role')) return { rows: [] };
+    if (sql.startsWith('SELECT id,source_object_id')) {
+      if (missingMigration) { const error = Error('missing table'); error.code = '42P01'; throw error; }
+      assert.equal(args[0], 'owner'); assert.equal(args[1], 'met'); assert.deepEqual(args[2], ['1']);
+      return { rows: [{ objectId: '1', id: 'candidate-id', decision: 'dismissed', revision: 3, previousDecision: 'kept' }] };
+    }
     if (sql.startsWith('SELECT count(*) FROM research_imports')) return { rows: [{ count: 0 }] };
     if (sql.startsWith('INSERT INTO research_imports')) { previewWrites++; return { rows: [{ id: randomUUID(), user_id: args[0], source_type: args[1], source_provider: args[2], payload: JSON.parse(args[3]), status: 'preview' }] }; }
     if (sql.startsWith('INSERT INTO records')) recordWrites++;
@@ -158,9 +181,13 @@ test('authenticated route searches without writes then selected ID enters existi
     assert.equal(response.status, 200); assert.match(response.headers.get('cache-control'), /no-store/);
     const result = await response.json();
     assert.equal(result.items[0].objectId, '1'); assert.equal(previewWrites, 0); assert.equal(recordWrites, 0);
+    assert.equal(result.items[0].researchList.decision, 'dismissed');
     const preview = await originalFetch(`${base}/imports/preview`, { method: 'POST', headers: { 'x-user': 'owner', 'content-type': 'application/json' }, body: JSON.stringify({ sourceProvider: result.provider, objectIds: result.items.map(item => item.objectId) }) });
     assert.equal(preview.status, 201, await preview.clone().text());
     const job = await preview.json();
     assert.equal(job.rows[0].data.itemName, 'Coin'); assert.equal(previewWrites, 1); assert.equal(recordWrites, 0);
+    missingMigration = true;
+    const unavailable = await originalFetch(search, { headers: { 'x-user': 'owner' } });
+    assert.equal(unavailable.status, 503); assert.match((await unavailable.json()).error, /migration/);
   } finally { global.fetch = originalFetch; await new Promise(resolve => server.close(resolve)); }
 });
