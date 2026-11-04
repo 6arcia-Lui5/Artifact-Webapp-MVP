@@ -9,6 +9,7 @@ import { registerModeration } from "./moderation";
 import { registerImports } from "./imports";
 import { registerImages } from "./images";
 import type { Storage } from "./storage";
+import { museumTerms } from "./museumTerms";
 export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
     const router = Router();
     router.use(catalogContext(pool));
@@ -21,6 +22,7 @@ export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
         res.locals.userId = id;
         next();
     });
+    router.get("/terms", (_req, res) => res.json(museumTerms));
     router.get("/records", async (req, res) => {
         const s = appendVisibility(parseSearch(req.query, res.locals.userId), catalogAccess(res.locals.userId));
         const c = await pool.connect();
