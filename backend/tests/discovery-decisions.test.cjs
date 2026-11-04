@@ -53,6 +53,7 @@ test('real PostgreSQL discovery decisions survive fresh server and pool with bou
     const u = new URL(String(url));
     if (['collectionapi.metmuseum.org', 'openaccess-api.clevelandart.org'].includes(u.hostname)) {
       museumCalls.push(u.href);
+      if (u.hostname === 'collectionapi.metmuseum.org' && u.pathname.endsWith('/search')) return Response.json({ total: 1, objectIDs: [777] });
       const id = u.pathname.split('/').at(-1);
       if (id === '404') return new Response('missing', { status: 404 });
       if (id === '405') return Response.json({ objectID: 406, title: 'Wrong ID' });
@@ -181,6 +182,43 @@ test('real PostgreSQL discovery decisions survive fresh server and pool with bou
         await failing.query('ROLLBACK');
       } finally { failing.release(); }
       assert.equal((await pool.query('SELECT revision FROM research_discoveries WHERE id=$1', [id])).rows[0].revision, before);
+    });
+    await t.test('keyword rediscovery reads private durable decisions without writes or resetting them', async () => {
+      const before = (await send('GET', `/discoveries/${id}`)).body.item;
+      const dismissed = await send('PATCH', `/discoveries/${id}`, { decision: 'dismissed', expectedRevision: before.revision });
+      assert.equal(dismissed.status, 200);
+      const rowsBefore = (await pool.query('SELECT count(*) FROM research_discoveries')).rows[0].count;
+      const recordsBefore = (await pool.query('SELECT count(*) FROM records')).rows[0].count;
+      await stop(); await pool.end(); pool = makePool(); await start();
+      const search = await send('GET', '/discovery/search?provider=met&q=fake');
+      assert.equal(search.status, 200); assert.equal(search.body.items.length, 1);
+      const item = search.body.items[0];
+      assert.equal(item.objectId, '777'); assert.equal(item.researchList.id, id);
+      assert.equal(item.researchList.decision, 'dismissed'); assert.equal(item.researchList.previousDecision, 'kept');
+      assert.equal(item.researchList.revision, dismissed.body.item.revision);
+      const other = await send('GET', '/discovery/search?provider=met&q=fake', undefined, 'other');
+      assert.equal(other.status, 200); assert.equal(other.body.items[0].researchList.decision, 'pending');
+      assert.notEqual(other.body.items[0].researchList.id, id);
+      const unsaved = await send('GET', '/discovery/search?provider=met&q=fake', undefined, 'new-account');
+      assert.equal(unsaved.status, 200); assert.equal(unsaved.body.items[0].researchList, null);
+      await pool.query("INSERT INTO users(id,email,name) VALUES('new-account','new-account@example.test','New account')");
+      const savedFromSearch = await send('POST', '/discoveries', { sourceProvider: unsaved.body.provider, objectIds: unsaved.body.items.map(r => r.objectId) }, 'new-account');
+      assert.equal(savedFromSearch.status, 201); assert.equal(savedFromSearch.body.added, 1);
+      const savedItem = (await send('GET', '/discoveries', undefined, 'new-account')).body.items[0];
+      assert.equal(savedItem.decision, 'pending');
+      const keptFromSearch = await send('PATCH', `/discoveries/${savedItem.id}`, { decision: 'kept', expectedRevision: savedItem.revision }, 'new-account');
+      assert.equal(keptFromSearch.status, 200);
+      const remembered = await send('GET', '/discovery/search?provider=met&q=fake', undefined, 'new-account');
+      assert.equal(remembered.body.items[0].researchList.decision, 'kept');
+      const addedAgain = await send('POST', '/discoveries', { sourceProvider: search.body.provider, objectIds: search.body.items.map(r => r.objectId) });
+      assert.equal(addedAgain.status, 201); assert.equal(addedAgain.body.existing, 1); assert.equal(addedAgain.body.added, 0);
+      assert.equal((await send('GET', `/discoveries/${id}`)).body.item.revision, dismissed.body.item.revision);
+      const undone = await send('POST', `/discoveries/${id}/undo`, { expectedRevision: item.researchList.revision });
+      assert.equal(undone.status, 200); assert.equal(undone.body.item.decision, 'kept');
+      const restored = await send('GET', '/discovery/search?provider=met&q=fake');
+      assert.equal(restored.body.items[0].researchList.decision, 'kept');
+      assert.equal(Number((await pool.query('SELECT count(*) FROM research_discoveries')).rows[0].count), Number(rowsBefore) + 1);
+      assert.equal((await pool.query('SELECT count(*) FROM records')).rows[0].count, recordsBefore);
     });
   } finally {
     globalThis.fetch = realFetch;

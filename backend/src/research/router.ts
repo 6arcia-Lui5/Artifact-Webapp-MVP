@@ -199,7 +199,7 @@ export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
         });
         res.json({ record: result });
     });
-    registerDiscovery(router);
+    registerDiscovery(router, pool);
     registerModeration(router, pool);
     registerImports(router, pool);
     registerDiscoveries(router, pool);

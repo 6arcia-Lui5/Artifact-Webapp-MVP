@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { ingestError, safeHttpUrl, searchMuseum } from '../../lib/ingestApi';
+import { addDiscoveries } from '../../lib/discoveriesApi';
+import useUserSync from '../../hooks/useUserSync';
 import ResearchImage from './ResearchImage';
 
 export default function MuseumDiscovery({ onPreview, previewBusy }) {
+  const account = useUserSync();
+  const client = useQueryClient();
   const [provider, setProvider] = useState('met');
   const [term, setTerm] = useState('');
   const [result, setResult] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(() => new Set());
+  const [addErrors, setAddErrors] = useState([]);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const controller = useRef(null);
@@ -16,7 +25,7 @@ export default function MuseumDiscovery({ onPreview, previewBusy }) {
     mounted.current = true;
     return () => { mounted.current = false; controller.current?.abort(); };
   }, []);
-  function reset() { setResult(null); setSelected(new Set()); setError(''); setMessage(''); }
+  function reset() { setResult(null); setSelected(new Set()); setAdded(new Set()); setAddErrors([]); setError(''); setMessage(''); }
   async function search(event) {
     event.preventDefault();
     reset(); setBusy(true);
@@ -38,19 +47,36 @@ export default function MuseumDiscovery({ onPreview, previewBusy }) {
       if (mounted.current) setMessage('Preview ready below. Review the source facts before importing.');
     } catch (failure) { if (mounted.current) setError(ingestError(failure)); }
   }
-  const disabled = busy || previewBusy;
+  async function addSelected() {
+    if (!account.isSuccess || !selected.size || adding) return;
+    setAdding(true); setError(''); setMessage(''); setAddErrors([]);
+    const objectIds = result.items.filter(item => selected.has(item.objectId)).map(item => item.objectId);
+    try {
+      const saved = await addDiscoveries({ sourceProvider: result.provider, objectIds });
+      await client.invalidateQueries({ queryKey: ['researchDiscoveries'] });
+      if (mounted.current) {
+        const failed = new Set(saved.errors.map(item => item.objectId));
+        setAdded(current => new Set([...current, ...objectIds.filter(id => !failed.has(id))]));
+        setSelected(new Set(objectIds.filter(id => failed.has(id))));
+        setAddErrors(saved.errors);
+        setMessage(`${saved.added} added. ${saved.existing} already in your research list. Existing decisions are unchanged.`);
+      }
+    } catch (failure) { if (mounted.current) setError(`${ingestError(failure)} Your selection is kept. You can check your research list before retrying.`); }
+    finally { if (mounted.current) setAdding(false); }
+  }
+  const disabled = busy || previewBusy || adding;
   return <section className="card bg-base-300" aria-labelledby="museum-discovery-title"><div className="card-body space-y-4">
     <h2 id="museum-discovery-title" className="card-title">Find museum objects</h2>
     <form onSubmit={search} className="flex flex-wrap items-end gap-3">
-      <label className="form-control space-y-1 flex-1 min-w-48"><span>Museum</span><select className="select select-bordered w-full" value={provider} disabled={disabled} onChange={event => { setProvider(event.target.value); reset(); }}>
+      <div className="form-control space-y-1 flex-1 min-w-48"><label htmlFor="museum-discovery-provider">Museum</label><select id="museum-discovery-provider" className="select select-bordered w-full" value={provider} disabled={disabled} onChange={event => { setProvider(event.target.value); reset(); }}>
         <option value="met">Metropolitan Museum of Art</option><option value="cleveland">Cleveland Museum of Art</option>
-      </select></label>
+      </select></div>
       <label className="form-control space-y-1 flex-1 min-w-48"><span>Search terms</span><input className="input input-bordered w-full" value={term} maxLength={80} required disabled={disabled} placeholder="e.g. coin pendant" onChange={event => { setTerm(event.target.value); reset(); }} /></label>
       <button className="btn btn-primary" disabled={disabled || !term.trim()}>{busy ? 'Searching…' : 'Search museum'}</button>
       {busy && <button type="button" className="btn btn-outline" onClick={() => controller.current?.abort()}>Cancel search</button>}
     </form>
     <details><summary className="cursor-pointer">How this search works</summary><div className="mt-2 space-y-2 max-w-prose">
-      <p>Searches the selected museum using word order, hyphen, and jewelry/jewellery variants. Results are a small sample, with no objects saved until you choose a preview.</p>
+      <p>Searches the selected museum using word order, hyphen, and jewelry/jewellery variants. Results are a small sample. Add objects to your research list to decide what to keep; catalog import is separate.</p>
       <p>Supported roots: blunder*, erro*, forg*, garble*, imitate*, nonsens*, pseudo*, mistake*. Each uses a short, explicit word list; other roots are rejected. French, German, and Italian terms can be entered directly; automatic translation is not included.</p>
     </div></details>
     {busy && <p role="status">Searching the museum. This can take up to 18 seconds.</p>}
@@ -64,6 +90,7 @@ export default function MuseumDiscovery({ onPreview, previewBusy }) {
           <label className="flex items-start gap-3 font-semibold"><input type="checkbox" className="checkbox checkbox-sm mt-1 shrink-0" disabled={disabled} checked={selected.has(item.objectId)} onChange={event => setSelected(current => {
             const next = new Set(current); if (event.target.checked) next.add(item.objectId); else next.delete(item.objectId); return next;
           })} /><span className="break-words">{item.itemName}</span></label>
+          {item.researchList || added.has(item.objectId) ? <div className="flex flex-wrap items-center gap-3"><span className="badge badge-outline">{item.researchList?.decision === 'kept' ? 'Kept' : item.researchList?.decision === 'dismissed' ? 'Dismissed earlier' : 'In research list'}</span><Link className="link text-sm" to={`/discoveries?status=${item.researchList?.decision || 'active'}`}>Review decision</Link></div> : null}
           {safeHttpUrl(item.sourceUrl) && <a className="link inline-block" href={safeHttpUrl(item.sourceUrl)} target="_blank" rel="noreferrer">View museum record</a>}
           <details><summary className="cursor-pointer">Details</summary><dl className="mt-2 space-y-1 break-words">
             <div><dt className="font-semibold inline">Museum: </dt><dd className="inline">{item.museumName}</dd></div>
@@ -74,9 +101,16 @@ export default function MuseumDiscovery({ onPreview, previewBusy }) {
         </div>
       </li>)}</ul>
       <details><summary className="cursor-pointer">Queries tried</summary><ul className="mt-2 space-y-1">{result.queries.map(query => <li key={query.query} className="break-words">{query.query}: {query.error || `${query.total} museum matches${query.limited ? ' (sampled)' : ''}`}</li>)}</ul></details>
-      {result.items.length > 0 && <button type="button" className="btn btn-primary self-start" disabled={disabled || !selected.size} onClick={preview}>{previewBusy ? 'Preparing preview…' : `Preview selected (${selected.size})`}</button>}
+      {result.items.length > 0 && <div className="flex flex-wrap items-center gap-3">
+        <button type="button" className="btn btn-primary" disabled={disabled || !selected.size || !account.isSuccess} onClick={addSelected}>{adding ? 'Adding to research list…' : `Add selected to research list (${selected.size})`}</button>
+        <button type="button" className="btn btn-outline" disabled={disabled || !selected.size || !account.isSuccess} onClick={preview}>{previewBusy ? 'Preparing preview…' : `Preview selected (${selected.size})`}</button>
+        <Link className="link" to="/discoveries">Open research list</Link>
+      </div>}
+      {result.items.length > 0 && account.isPending ? <p role="status">Connecting your account before saving…</p> : null}
+      {result.items.length > 0 && account.isError ? <p role="alert">{ingestError(account.error)} <button className="link" onClick={() => account.refetch()}>Reconnect account</button></p> : null}
     </>}
     {message && <p role="status">{message}</p>}
+    {addErrors.length ? <ul role="alert" className="list-disc pl-5">{addErrors.map(item => <li key={item.objectId}>Object {item.objectId}: {item.message}</li>)}</ul> : null}
     {error && <p role="alert">{error}</p>}
   </div></section>;
 }
