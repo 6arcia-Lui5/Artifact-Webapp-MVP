@@ -12,6 +12,7 @@ The app also offers photo-transcription drafts and date/region suggestions. Thes
 - **Record research:** create incomplete drafts, edit metadata, and save multiple inscriptions with their language, script and optional translation.
 - **Organize and export:** group artifacts into personal research collections and download filtered or selected records as CSV or JSON.
 - **Import records:** preview CSV/Excel mappings or selected Metropolitan Museum of Art and Cleveland Museum of Art records before saving. Imports retain source details and leave missing facts unknown.
+- **Review museum discoveries:** maintain a personal Keep/Dismiss list from known Met or Cleveland object IDs, with durable one-step undo. Catalog imports remain separate. See [discovery decisions](docs/feature-discovery-decisions.md).
 - **Manage photographs:** attach source links or store permitted originals with captions, credits and licenses. Multiple views, primary-image selection and original downloads are supported.
 - **Review submissions:** administrators and trusted reviewers approve records or request changes. Editorial approval is separate from scholarly certainty.
 - **Track changes:** inspect revision history and restore earlier research data. Conflicting edits are rejected so one researcher does not silently overwrite another's work.
@@ -97,7 +98,7 @@ node --env-file=.env scripts/migrate-research.cjs public --allow-public --previe
 node --env-file=.env scripts/migrate-research.cjs public --allow-public
 ```
 
-The first command creates the baseline tables. The next two preview and apply the ordered research-catalog and moderation migrations. Application startup does not apply migrations.
+The first command creates the baseline tables. The next two preview and apply the ordered research-catalog, moderation, and discovery-decision migrations. Application startup does not apply migrations.
 
 For an existing database, follow the [migration and backup instructions](backend/RESEARCH_API.md#postgresql-migration-and-recovery) before changing its schema. Do not use `db:push` as an upgrade procedure for a shared catalog. A non-public schema must already contain the baseline tables; set `DATABASE_SCHEMA` to the schema used by the migrations.
 
@@ -121,7 +122,7 @@ The application uses React/Vite, Express/TypeScript, PostgreSQL/Drizzle and Cler
 For the research catalog deployment:
 
 - Deploy `backend` and `frontend` as separate Vercel projects. Set the backend's `FRONTEND_URL` and the frontend's `VITE_API_URL` to their hosted addresses.
-- Apply both database migrations before enabling the updated application. Configure approved accounts and administrator IDs on the backend.
+- Apply all three ordered database migrations before enabling the updated application. Configure approved accounts and administrator IDs on the backend.
 - Use a private Cloudflare R2 bucket for hosted uploads. Uploads are disabled in production until storage is configured. The local filesystem adapter is for development only.
 - Host model services separately if recognition or date/region checks must work from the website. A hosted backend cannot reach a researcher's localhost. A local helper currently produces text for review and manual transfer; the integrated local-worker connection is not implemented.
 - Back up PostgreSQL and uploaded image files separately, and verify recovery before relying on the catalog as the only research archive.

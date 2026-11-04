@@ -7,6 +7,7 @@ import { transaction, owned, readable, record, recordSelect, event } from "./dat
 import { appendVisibility, canRead, catalogAccess, catalogContext, elevated, visibilitySql } from "./access";
 import { registerModeration } from "./moderation";
 import { registerImports } from "./imports";
+import { registerDiscoveries } from "./discoveries";
 import { registerImages } from "./images";
 import { registerDiscovery } from "./discovery";
 import type { Storage } from "./storage";
@@ -199,6 +200,7 @@ export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
     registerDiscovery(router);
     registerModeration(router, pool);
     registerImports(router, pool);
+    registerDiscoveries(router, pool);
     registerImages(router, pool, imageStorage);
     router.use((error: any, _req: any, res: any, _next: any) => {
         if (res.headersSent)
