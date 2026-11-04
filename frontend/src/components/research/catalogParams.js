@@ -1,4 +1,4 @@
-export const FILTER_FIELDS = ["q", "museum", "material", "language", "script", "place", "objectTypeId", "reviewStatus", "sourceProvider", "dateFrom", "dateTo"];
+export const FILTER_FIELDS = ["q", "expandTerms", "museum", "material", "language", "script", "place", "objectTypeId", "reviewStatus", "sourceProvider", "dateFrom", "dateTo"];
 const SORTS = new Set(["newest", "oldest", "title", "updated"]);
 
 export function parseCatalogParams(input) {
@@ -9,6 +9,7 @@ export function parseCatalogParams(input) {
     if (value) params[field] = value;
   }
   if (!["draft", "reviewed", "uncertain"].includes(params.reviewStatus)) delete params.reviewStatus;
+  if (params.expandTerms !== "1") delete params.expandTerms;
   const page = Number(search.get("page"));
   const size = Number(search.get("pageSize"));
   params.page = Number.isSafeInteger(page) && page > 0 && page <= 100000 ? page : 1;
