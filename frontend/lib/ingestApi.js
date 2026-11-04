@@ -70,6 +70,7 @@ export async function invalidateCatalog(client, id) {
 }
 const get = async (path, signal) => (await (await client()).get(`${root}${path}`, { signal, timeout: 25000 })).data;
 export const getImportSources = signal => get('/sources', signal);
+export const searchMuseum = (provider, q, signal) => get(`/discovery/search?${new URLSearchParams({ provider, q })}`, signal);
 export const getImportJobs = signal => get('/imports', signal);
 export const getImportJob = (id, signal) => get(`/imports/${segment(id)}`, signal);
 export async function previewImport({ file, mapping, sourceProvider, objectIds }, signal) {

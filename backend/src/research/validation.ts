@@ -1,5 +1,6 @@
 import { getTableColumns } from "drizzle-orm";
 import { records, inscriptions } from "../db/schema";
+import { museumSearchAliases } from "./museumTerms";
 export class ApiError extends Error {
     constructor(public status: number, message: string) {
         super(message);
@@ -76,10 +77,15 @@ export function parseSearch(q: any, userId: string) {
     for (const k of Object.keys(q))
         if (typeof q[k] !== "string")
             throw new ApiError(400, "Query values must be strings");
+    if (q.expandTerms !== undefined && !["0", "1"].includes(q.expandTerms))
+        throw new ApiError(400, "expandTerms must be 0 or 1");
     const search = text(q.q, 300);
     if (search) {
-        const p = bind(search);
-        conditions.push(`r.search_vector @@ plainto_tsquery('simple',${p})`);
+        const aliases = museumSearchAliases(search, q.expandTerms === "1");
+        const matches = aliases.map(alias => `r.search_vector @@ plainto_tsquery('simple',${bind(alias)})`);
+        // Keep the OR inside parentheses so filters and visibility constrain
+        // every language, including list, count and export queries.
+        conditions.push(matches.length === 1 ? matches[0] : `(${matches.join(" OR ")})`);
     }
     const filters: Record<string, string> = { objectTypeId: "object_type_id", museum: "museum_name", material: "materials", place: "production_place", reviewStatus: "review_status", sourceProvider: "source_provider" };
     for (const [k, c] of Object.entries(filters))

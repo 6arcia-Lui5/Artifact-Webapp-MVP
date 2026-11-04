@@ -72,7 +72,7 @@ router.get("/records/:id/check", async (req: Request, res: Response) => {
 
         const { notBefore, notAfter } = parseDating(record.dateCulturePeriod);
         const supportedDate = notBefore !== null && notAfter !== null && notBefore >= -800 && notAfter <= 1000;
-        const listedRegion = record.productionPlace || record.findspot || null;
+        const listedRegion = record.productionPlace?.trim() || record.findspot?.trim() || null;
         const result = await callMl("/check", {
             id: record.id,
             text: texts.join(" "),
@@ -86,6 +86,10 @@ router.get("/records/:id/check", async (req: Request, res: Response) => {
                 ? "The catalog date was not parsed. Use an explicit range such as 100-200 CE or 2nd century BCE; date metadata was not checked."
                 : "The catalog date is outside the model's supported range; date metadata was not checked.",
             ...result,
+            comparison: {
+                date: { compared: supportedDate, reason: supportedDate ? null : !record.dateCulturePeriod?.trim() ? 'missing' : notBefore === null ? 'unrecognized' : 'outside_range' },
+                region: { compared: Boolean(listedRegion) && !result.region_note, reason: !listedRegion ? 'missing' : result.region_note ? 'unrecognized' : null },
+            },
         });
     } catch (e) {
         if (e instanceof MlInputError) return res.status(400).json({ error: e.message });

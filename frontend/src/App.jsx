@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import CollectionPage from "./pages/CollectionPage";
 import CollectionDetailPage from "./pages/CollectionDetailPage";
 import ImportPage from "./pages/ImportPage";
+import DiscoveriesPage from "./pages/DiscoveriesPage";
 import ReviewQueuePage from "./pages/ReviewQueuePage";
 import RecordPage from "./pages/RecordPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -10,6 +11,7 @@ import CreatePage from "./pages/CreatePage";
 import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
 import SearchPage from "./pages/SearchPage";
+import MuseumTermsPage from "./pages/MuseumTermsPage";
 import RequireSignIn from "./components/RequireSignIn";
 import RequireSiteAccess from "./components/RequireSiteAccess";
 import AppLayout from "./components/AppLayout";
@@ -29,6 +31,7 @@ function App() {
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/record/:id" element={<RecordPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/terms" element={<MuseumTermsPage />} />
           {!import.meta.env.DEV && (
             <Route path="/signup/*" element={
               <p>Account creation is available only in the local development environment.</p>
@@ -38,6 +41,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/create" element={<CreatePage />} />
             <Route path="/import" element={<ImportPage />} />
+            <Route path="/discoveries" element={<DiscoveriesPage />} />
             <Route path="/review" element={<ReviewQueuePage />} />
             <Route path="/edit/:id" element={<EditRecordPage />} />
             <Route path="/edit" element={<EditRecordPage />} />

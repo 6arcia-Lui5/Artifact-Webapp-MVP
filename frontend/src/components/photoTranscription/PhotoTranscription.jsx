@@ -4,6 +4,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import { MODES, FULL_CROP, validatePhoto, downloadPhoto, decodePhoto, renderPhoto, canvasBlob, visionPhotoBlob, cropPixels } from './image';
 import { getTranscriptionStatus, transcribePhoto, getMuseumTranscriptionPhoto } from '../../../lib/api';
 import { sourceUrl, metObjectId } from '../../../lib/artifactImages';
+import { readingStatus } from '../../../lib/readingStatus';
 
 const READING_LABELS = { whole_photo: 'Full-photo reading', secondary_vision: 'Second photo reading', consensus: 'Combined reading', line_glyphs: 'Individual-line reading', ocr: 'OCR reading' };
 
@@ -182,22 +183,21 @@ export default function PhotoTranscription({ onAdd, full, imageSourceUrl }) {
     // Editing draft metadata or crop coordinates must not submit the artifact.
     if (event.key === 'Enter' && event.target.tagName === 'INPUT' && event.target.type !== 'file') event.preventDefault();
   }}>
-    <p className="text-sm">Select the inscription area, then review the draft beside the photo. Correct uncertain letters before adding it to the record. A photo used here is not saved as the artifact image.</p>
+    <details><summary className="cursor-pointer font-medium">Reading options</summary>
     <label className="block">Recognition method
       <select className="select select-bordered w-full mt-2" value={method} disabled={service.loading} onChange={event => { invalidate(); setMethod(event.target.value); }}>
         <option value="pipeline" disabled={!service.pipelineConfigured || mode === 'heb'}>Read and compare{!service.pipelineConfigured ? ' (not configured)' : ''}</option>
         <option value="vision" disabled={!service.configured}>Vision service{!service.configured ? ' (not configured)' : ''}</option>
         <option value="browser">On-device OCR</option>
       </select>
-    </label>
-    <p className="text-sm text-base-content/70">{service.loading ? 'Checking assisted transcription availability...'
-      : method !== 'browser' ? 'Only the selected crop is sent to the configured transcription services. The catalog does not store this upload. Compared readings expose disagreements; agreement does not establish correctness.'
-      : 'Recognition runs on this device. Chosen local files are not uploaded. Language data download on first use. Basic OCR works best on clear, flat lettering and may struggle with carvings.'}</p>
-    <label className="block">Local photo (PNG, JPEG, or WebP; up to 8 MB and 20 million pixels)
+    </label><p className="mt-3">Supported photos: PNG, JPEG, WebP; up to 8 MB and 20 million pixels. On-device OCR downloads language data on first use.</p></details>
+    <p className="text-sm text-base-content/80">{service.loading ? 'Checking reading options...'
+      : method !== 'browser' ? 'Only the selected area is sent for reading. This photo is not saved.'
+      : 'Reading runs on this device. Local photos are not uploaded or saved.'}</p>
+    <label className="block">Choose photo
       <input type="file" accept="image/png,image/jpeg,image/webp" className="file-input file-input-bordered w-full mt-2" onChange={choosePhoto} />
     </label>
     <button type="button" className="btn btn-outline btn-sm" disabled={!catalogSource || loading} onClick={useCatalogPhoto}>Use catalog image</button>
-    {!catalogSource && <p className="text-sm text-base-content/70">Add an Image Source URL to use the catalog photo, or choose a local photo above.</p>}
     {loading && <div className="flex flex-wrap items-center gap-3"><p role="status">Opening photo...</p><button type="button" className="btn btn-ghost btn-sm" onClick={() => { invalidate(); setNotice('Photo loading cancelled. You can choose another photo or enter the text manually.'); }}>Cancel photo loading</button></div>}
     {photo && <div className="grid gap-5 lg:grid-cols-2">
       <div className="space-y-3 min-w-0">
@@ -212,10 +212,10 @@ export default function PhotoTranscription({ onAdd, full, imageSourceUrl }) {
           const next = (rotation + 90) % 360;
           try { setPreview(renderPhoto(photo, next).toDataURL('image/png')); setRotation(next); setCrop(FULL_CROP); }
           catch { setError('Could not rotate this photo. Try a smaller photo.'); }
-        }}>Rotate clockwise 90 degrees</button>
-        <p className="text-sm">Rotation: {rotation} degrees. Drag the selection around the letters, or adjust the crop coordinates below.</p>
+        }}>Rotate photo</button>
         <details>
         <summary className="cursor-pointer text-sm underline underline-offset-4">Crop coordinates</summary>
+        <p className="mt-2">Rotation: {rotation}°. Drag around the letters or adjust the area below.</p>
         <fieldset className="grid grid-cols-2 gap-3 mt-3">
           <legend className="font-medium mb-2">Inscription area</legend>
           {Object.entries({ x: 'Left (%)', y: 'Top (%)', width: 'Width (%)', height: 'Height (%)' }).map(([key, label]) => <label key={key} className="block">{label}
@@ -241,15 +241,14 @@ export default function PhotoTranscription({ onAdd, full, imageSourceUrl }) {
         </div>
         {busy && <div role="status"><p>{progress.status || 'Loading recognition'}{progress.progress === null ? '...' : `: ${Math.round(Math.max(0, Math.min(1, progress.progress || 0)) * 100)}%`}</p><progress className="progress w-full" max="1" value={progress.progress ?? undefined} aria-label="Transcription progress" /></div>}
         {draft && <fieldset className="space-y-3">
-          <legend className="font-semibold mb-2">Transcription draft</legend>
-          {draft.evidence && <div className="rounded-lg border border-base-300 p-3 space-y-2">
-            <p className="font-medium">{draft.evidence.review?.status === 'readers_disagree' ? 'The readers disagree. Check the marked differences against the photo.'
-              : draft.evidence.review?.status === 'no_text' ? 'No readable inscription was returned.'
-                : draft.evidence.review?.status === 'readers_agree' ? 'The readers agree on the copied characters. This reading is still unverified.'
-                  : 'This reading contains uncertainty or could not be fully compared.'}</p>
-            <p className="text-sm">Automatic acceptance is not enabled. Internal recognition scores are not accuracy percentages.</p>
+          <legend className="font-semibold mb-2">Draft reading</legend>
+          {draft.evidence && <p className="font-medium">{readingStatus(draft.evidence.review?.status)}</p>}
+          <label className="block">Original inscription text
+            <textarea dir="auto" className="textarea textarea-bordered w-full min-h-40 mt-1" maxLength={10000} value={draft.content} onChange={event => setDraft(current => ({ ...current, content: event.target.value }))} />
+          </label>
+          {draft.evidence && <div className="space-y-2">
             <details>
-              <summary className="cursor-pointer text-sm underline underline-offset-4">Compare original machine readings</summary>
+              <summary className="cursor-pointer text-sm underline underline-offset-4">Compare readings</summary>
               <div className="space-y-3 mt-3">
                 {draft.evidence.readings?.map((reading, index) => <div key={index}>
                   <p className="text-xs font-medium">{READING_LABELS[reading.kind] || 'Machine reading'}</p>
@@ -263,22 +262,22 @@ export default function PhotoTranscription({ onAdd, full, imageSourceUrl }) {
                 {draft.evidence.comparisons?.filter(reading => reading.comparison?.complete === false).map((reading, index) => <p key={index} className="text-sm">{READING_LABELS[reading.kind] || 'Machine reading'}: {reading.comparison.note || 'This reading could not be fully compared.'}</p>)}
               </div>
             </details>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => {
+          </div>}
+          {draft.notes?.length > 0 && <p className="text-sm">Reader notes available in Reading details.</p>}
+          {(draft.evidence || draft.model || draft.notes?.length > 0) && <details><summary className="cursor-pointer text-sm">Reading details</summary><div className="space-y-2 mt-3">
+            {draft.model && <p>Model: {draft.model}</p>}
+            {draft.notes?.length > 0 && <ul className="list-disc pl-5">{draft.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>}
+            {draft.evidence && <><p>Machine scores are not accuracy percentages.</p><button type="button" className="btn btn-ghost btn-sm" onClick={() => {
               const report = { ...draft.evidence, editedText: draft.content, selectedReadingKind: draft.selectedReadingKind || 'primary', language: draft.language, script: draft.script, recordSaved: false };
               const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
               const link = document.createElement('a'); link.href = url; link.download = 'inscription-reading.json'; link.click(); URL.revokeObjectURL(url);
-            }}>Download reading evidence</button>
-          </div>}
-          {draft.model && <p className="text-xs text-base-content/70">Model: {draft.model}</p>}
-          {draft.notes?.length > 0 && <ul className="list-disc pl-5 text-sm text-base-content/70">{draft.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>}
-          <label className="block">Original inscription text
-            <textarea dir="auto" className="textarea textarea-bordered w-full min-h-40 mt-1" maxLength={10000} value={draft.content} onChange={event => setDraft(current => ({ ...current, content: event.target.value }))} />
-          </label>
+            }}>Download reading evidence</button></>}
+          </div></details>}
           {['language', 'script', 'translation'].map(key => <label key={key} className="block">{key === 'translation' ? 'Translation (English, optional)' : key === 'language' ? 'Language of inscription' : 'Script used'}
             <input className="input input-bordered w-full mt-1" maxLength={10000} value={draft[key]} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} />
           </label>)}
           <button type="button" className="btn btn-primary" disabled={full || !draft.content.trim() || !draft.language.trim() || !draft.script.trim()} onClick={() => { onAdd(draft); setDraft(null); setNotice('Transcription added to the form. Save the artifact to keep it.'); }}>Add transcription</button>
-          <p className="text-sm">Adding fills an empty entry or appends a new inscription. Save the artifact to keep it.</p>
+          <p className="text-sm">Review against the photo before adding.</p>
         </fieldset>}
       </div>
     </div>}
