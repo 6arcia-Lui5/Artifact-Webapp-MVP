@@ -37,6 +37,7 @@ test('original inscriptions are searchable, filters survive reload and exports r
   const original = await originalResponse.json();
   const word = original.inscriptions[0].content.trim().split(/\s+/)[0];
   await page.getByRole('link', { name: 'Search', exact: true }).click();
+  await page.getByText('Filters', { exact: true }).click();
   await page.getByRole('textbox', { name: 'Search records', exact: true }).fill(word);
   await page.getByLabel('Language', { exact: true }).fill('Greek');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
