@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import CollectionPage from "./pages/CollectionPage";
 import CollectionDetailPage from "./pages/CollectionDetailPage";
 import ImportPage from "./pages/ImportPage";
+import DiscoveriesPage from "./pages/DiscoveriesPage";
 import ReviewQueuePage from "./pages/ReviewQueuePage";
 import RecordPage from "./pages/RecordPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -38,6 +39,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/create" element={<CreatePage />} />
             <Route path="/import" element={<ImportPage />} />
+            <Route path="/discoveries" element={<DiscoveriesPage />} />
             <Route path="/review" element={<ReviewQueuePage />} />
             <Route path="/edit/:id" element={<EditRecordPage />} />
             <Route path="/edit" element={<EditRecordPage />} />
