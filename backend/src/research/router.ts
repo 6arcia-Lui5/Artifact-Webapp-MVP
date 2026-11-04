@@ -8,6 +8,7 @@ import { appendVisibility, canRead, catalogAccess, catalogContext, elevated, vis
 import { registerModeration } from "./moderation";
 import { registerImports } from "./imports";
 import { registerImages } from "./images";
+import { registerDiscovery } from "./discovery";
 import type { Storage } from "./storage";
 export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
     const router = Router();
@@ -195,6 +196,7 @@ export function createResearchRouter(pool: Pool, imageStorage?: Storage) {
         });
         res.json({ record: result });
     });
+    registerDiscovery(router);
     registerModeration(router, pool);
     registerImports(router, pool);
     registerImages(router, pool, imageStorage);
