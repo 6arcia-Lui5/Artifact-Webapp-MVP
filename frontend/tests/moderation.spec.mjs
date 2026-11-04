@@ -66,6 +66,7 @@ test('pending submissions require a trusted decision, conceal private data and r
     await expect(author.page.getByRole('link', { name: 'Review submissions', exact: true })).toHaveCount(0);
 
     await admin.page.getByRole('link', { name: 'Review submissions', exact: true }).click();
+    await admin.page.getByText('Reviewer settings', { exact: true }).click();
     const roleSection = admin.page.locator('section').filter({ has: admin.page.getByRole('heading', { name: 'Manage trusted reviewers', exact: true }) });
     const roleRow = roleSection.locator('div.border-t').filter({ hasText: accounts()[3].userId });
     await roleRow.getByRole('combobox', { name: 'Role', exact: true }).selectOption('reviewer');
@@ -86,6 +87,7 @@ test('pending submissions require a trusted decision, conceal private data and r
     await reviewer.page.getByRole('link', { name: 'Review submissions', exact: true }).click();
     const submission = reviewer.page.locator('article').filter({ has: reviewer.page.getByRole('heading', { name: title, exact: true }) });
     await expect(submission).toBeVisible();
+    await submission.locator('summary').first().click();
     const before = await request.get(`${api}/records/${id}`, { headers: await auth(reviewer) });
     const current = await before.json();
     const stale = await request.post(`${api}/research/records/${id}/moderate`, { headers: await auth(reviewer), data: { status: 'approved', notes: 'Stale revision must not publish', expectedRevision: current.revision - 1 } });

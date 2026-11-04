@@ -293,9 +293,9 @@ test("create, edit, reload and review multiple inscriptions against the real iso
   expect(before.inscriptions).toHaveLength(2);
   const ids = before.inscriptions.map(entry => entry.id).sort();
   const mlResponse = page.waitForResponse(response => response.url() === apiUrl + `/ml/records/${created.id}/check`);
-  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
+  await page.getByRole("button", { name: "Check inscription", exact: true }).click();
   expect((await mlResponse).status()).toBe(200);
-  await expect(page.getByText("Suggested date interval", { exact: true })).toBeVisible();
+  await expect(page.getByText("Suggested date", { exact: true })).toBeVisible();
   const afterCheck = await (await request.get(apiUrl + `/records/${created.id}`, { headers })).json();
   expect(afterCheck.updatedAt).toBe(before.updatedAt);
   expect(afterCheck.dateCulturePeriod).toBe(before.dateCulturePeriod);
@@ -323,11 +323,11 @@ test("create, edit, reload and review multiple inscriptions against the real iso
   await expect(page.getByRole("heading", { name: "Corrected workflow artifact", exact: true })).toBeVisible();
   await page.goto(`/record/${created.id}`);
   await page.route(apiUrl + `/ml/records/${created.id}/check`, route => route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "ML service unavailable" }) }));
-  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Your artifact is unchanged");
+  await page.getByRole("button", { name: "Check inscription", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("ML service unavailable");
   await page.unroute(apiUrl + `/ml/records/${created.id}/check`);
-  await page.getByRole("button", { name: "Run ML check", exact: true }).click();
-  await expect(page.getByText("Suggested date interval", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Check inscription", exact: true }).click();
+  await expect(page.getByText("Suggested date", { exact: true })).toBeVisible();
   const count = (await (await request.get(apiUrl + "/records", { headers })).json()).length;
   const invalid = await request.post(apiUrl + "/records", { headers, data: {
     ...saved, inscriptions: [{ content: "", language: "Greek", script: "Greek" }],

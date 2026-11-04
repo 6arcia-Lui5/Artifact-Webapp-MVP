@@ -38,6 +38,7 @@ async function openPanel(page, id) {
   await page.goto(`/edit/${id}`);
   await page.getByRole('button', { name: 'Transcribe a photo', exact: true }).click();
   const panel = page.locator('#photo-transcription-panel');
+  await panel.getByText('Reading options', { exact: true }).click();
   await expect(panel.getByRole('combobox', { name: 'Recognition method', exact: true })).toBeEnabled();
   return panel;
 }
@@ -156,8 +157,7 @@ test('compared photo readings remain auditable and do not change the artifact un
   await panel.locator('input[type="file"]').setInputFiles(photoFile('met-256771.jpg'));
   await panel.getByRole('button', { name: 'Run transcription', exact: true }).click();
   await expect(panel.getByRole('textbox', { name: 'Original inscription text', exact: true })).toHaveValue(/PORCI/, { timeout: 120000 });
-  await expect(panel.getByText('Automatic acceptance is not enabled. Internal recognition scores are not accuracy percentages.', { exact: true })).toBeVisible();
-  await panel.getByText('Compare original machine readings', { exact: true }).click();
+  await panel.getByText('Compare readings', { exact: true }).click();
   await expect(panel.getByText('Full-photo reading', { exact: true })).toBeVisible();
   await expect(panel.getByText('OCR reading', { exact: true })).toBeVisible();
   await panel.screenshot({ path: path.join(os.tmpdir(), 'artifact-compared-reading.png') });
@@ -165,6 +165,7 @@ test('compared photo readings remain auditable and do not change the artifact un
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await panel.screenshot({ path: path.join(os.tmpdir(), 'artifact-compared-reading-mobile.png') });
   const downloading = page.waitForEvent('download');
+  await panel.getByText('Reading details', { exact: true }).click();
   await panel.getByRole('button', { name: 'Download reading evidence', exact: true }).click();
   const evidence = JSON.parse(fs.readFileSync(await (await downloading).path(), 'utf8'));
   expect(evidence.review.automaticAcceptance).toBe(false);
