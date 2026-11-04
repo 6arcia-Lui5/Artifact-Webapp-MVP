@@ -1,0 +1,63 @@
+{
+  "version": "2026-11-04.1",
+  "checkedAt": "2026-11-04",
+  "clientReviewStatus": "Not yet reviewed by Holly",
+  "concepts": [
+    {
+      "id": "ring",
+      "label": "Ring",
+      "scope": "Finger rings as an object class; specialist types are not interchangeable.",
+      "status": "source-attested",
+      "terms": [
+        {
+          "language": "en",
+          "term": "ring",
+          "source": { "museum": "The Metropolitan Museum of Art", "title": "Ring of Leontios", "objectId": "466087", "url": "https://www.metmuseum.org/art/collection/search/466087", "field": "Object title" }
+        },
+        {
+          "language": "fr",
+          "term": "bague",
+          "source": { "museum": "Musée du Louvre", "title": "Bague", "objectId": "MAO 2000", "url": "https://collections.louvre.fr/ark:/53355/cl010319234", "field": "Dénomination / Titre" }
+        },
+        {
+          "language": "de",
+          "term": "Ring",
+          "source": { "museum": "Kunsthistorisches Museum Wien", "title": "Ring", "objectId": "Kunstkammer, 2201", "url": "https://www.khm.at/kunstwerke/ring-88207", "field": "Objektbezeichnung" }
+        },
+        {
+          "language": "it",
+          "term": "anello",
+          "source": { "museum": "Musei Reali – Museo di Antichità", "title": "anello", "objectId": "0100191980", "url": "https://catalogo.beniculturali.it/detail/ArchaeologicalProperty/0100191980", "field": "OGGETTO; official Italian national catalog" }
+        }
+      ]
+    },
+    {
+      "id": "pendant",
+      "label": "Pendant",
+      "scope": "Pendant ornaments as an object class; this does not establish an equivalent term for coin pendant.",
+      "status": "source-attested",
+      "terms": [
+        {
+          "language": "en",
+          "term": "pendant",
+          "source": { "museum": "The Metropolitan Museum of Art", "title": "Gold Necklace with Pendant Cross", "objectId": "464064", "url": "https://www.metmuseum.org/art/collection/search/464064", "field": "Object title and dimensions" }
+        },
+        {
+          "language": "fr",
+          "term": "pendentif",
+          "source": { "museum": "Musée du Louvre", "title": "pendentif", "objectId": "E 13511 8; X 5179", "url": "https://collections.louvre.fr/ark:/53355/cl010045032", "field": "Dénomination / Titre" }
+        },
+        {
+          "language": "de",
+          "term": "Anhänger",
+          "source": { "museum": "Kunsthistorisches Museum Wien", "title": "Kreuz", "objectId": "Antikensammlung, XI 1192", "url": "https://www.khm.at/kunstwerke/kreuz-72117", "field": "Objektbezeichnung" }
+        },
+        {
+          "language": "it",
+          "term": "pendente",
+          "source": { "museum": "Musei Reali – Museo di Antichità", "title": "pendente", "objectId": "0100192015", "url": "https://catalogo.beniculturali.it/detail/ArchaeologicalProperty/0100192015", "field": "OGGETTO; official Italian national catalog" }
+        }
+      ]
+    }
+  ]
+}

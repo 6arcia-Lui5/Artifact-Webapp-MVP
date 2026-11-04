@@ -11,6 +11,7 @@ import CreatePage from "./pages/CreatePage";
 import EditRecordPage from "./pages/EditRecordPage";
 import LoginPage from "./pages/LoginPage";
 import SearchPage from "./pages/SearchPage";
+import MuseumTermsPage from "./pages/MuseumTermsPage";
 import RequireSignIn from "./components/RequireSignIn";
 import RequireSiteAccess from "./components/RequireSiteAccess";
 import AppLayout from "./components/AppLayout";
@@ -30,6 +31,7 @@ function App() {
           <Route path="/collections/:id" element={<CollectionDetailPage />} />
           <Route path="/record/:id" element={<RecordPage />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/terms" element={<MuseumTermsPage />} />
           {!import.meta.env.DEV && (
             <Route path="/signup/*" element={
               <p>Account creation is available only in the local development environment.</p>

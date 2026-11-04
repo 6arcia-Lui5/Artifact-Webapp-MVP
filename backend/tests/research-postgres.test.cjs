@@ -613,6 +613,66 @@ test('real PostgreSQL research semantics in explicitly supplied disposable schem
                 await pool.query('DELETE FROM users WHERE id=$1', [admin]);
             }
         });
+        await t.test('museum aliases find actual indexed metadata/text with matching exports and contributor isolation', async () => {
+            const { museumTerms, museumSearchAliases } = require('../dist/research/museumTerms');
+            const { appendVisibility } = require('../dist/research/access');
+            const other = 'term-private-' + randomUUID();
+            const museum = 'Terminology test ' + randomUUID();
+            const added = [];
+            const expected = new Map();
+            const access = { userId: owner, role: 'contributor' };
+            try {
+                await pool.query('INSERT INTO users(id,email,name) VALUES($1,$2,$1)', [other, other + '@example.test']);
+                for (const family of museumTerms.concepts) {
+                    const familyIds = [];
+                    for (const term of museumSearchAliases(family.terms[0].term, true)) {
+                        const id = randomUUID(); added.push(id); familyIds.push(id);
+                        await pool.query("INSERT INTO records(id,user_id,item_name,museum_name,materials,date_start,date_end,moderation_status) VALUES($1,$2,$3,$4,'gold',50,150,'approved')", [id, owner, term, museum]);
+                    }
+                    expected.set(family.id, familyIds);
+                }
+                const latinRing = expected.get('ring')[0];
+                await pool.query("INSERT INTO inscriptions(record_id,content,language,script) VALUES($1,'D M','Latin','Latin')", [latinRing]);
+                const original = randomUUID(), translated = randomUUID(), privateId = randomUUID();
+                added.push(original, translated, privateId);
+                await pool.query("INSERT INTO records(id,user_id,item_name,museum_name,moderation_status) VALUES($1,$4,'Original-text fixture',$5,'approved'),($2,$4,'Translation fixture',$5,'approved'),($3,$6,'ring',$5,'pending')", [original, translated, privateId, owner, museum, other]);
+                await pool.query("INSERT INTO inscriptions(record_id,content,translation,language,script) VALUES($1,'pendente',NULL,'Italian','Latin'),($2,'χαῖρε','pendentif','Greek','Greek')", [original, translated]);
+                expected.get('pendant').push(original, translated);
+                for (const family of museumTerms.concepts) {
+                    for (const entry of family.terms) {
+                        const s = appendVisibility(parseSearch({ q: entry.term, expandTerms: '1', museum }, owner), access);
+                        const found = (await pool.query('SELECT r.id FROM records r ' + s.where, s.values)).rows.map(row => row.id);
+                        assert.deepEqual(found.sort(), [...expected.get(family.id)].sort(), entry.term);
+                    }
+                }
+                const nfc = appendVisibility(parseSearch({ q: 'Anha\u0308nger', expandTerms: '1', museum }, owner), access);
+                assert.equal((await pool.query('SELECT r.id FROM records r ' + nfc.where, nfc.values)).rowCount, expected.get('pendant').length);
+                const literal = appendVisibility(parseSearch({ q: 'bague', museum }, owner), access);
+                assert.equal((await pool.query('SELECT r.id FROM records r ' + literal.where, literal.values)).rowCount, 1);
+                await withResearchHttp(pool, owner, async send => {
+                    const filters = new URLSearchParams({ q: 'bague', expandTerms: '1', museum, material: 'gold', language: 'Latin', script: 'Latin', dateFrom: '0', dateTo: '200', sort: 'title', pageSize: '1' });
+                    const list = await send('GET', '/records?' + filters);
+                    assert.equal(list.status, 200, await list.clone().text());
+                    const body = await list.json();
+                    assert.equal(body.total, 1);
+                    assert.equal(body.items[0].id, latinRing);
+                    assert.equal(body.items[0].inscriptions[0].content, 'D M');
+                    const exported = await send('GET', '/export?' + filters + '&format=json');
+                    assert.equal(exported.status, 200, await exported.clone().text());
+                    assert.deepEqual((await exported.json()).map(row => row.id), body.items.map(row => row.id));
+                    const contributorList = await send('GET', '/records?' + new URLSearchParams({ q: 'anello', expandTerms: '1', museum }));
+                    const contributor = await contributorList.json();
+                    assert.deepEqual(contributor.items.map(row => row.id).sort(), [...expected.get('ring')].sort());
+                    const otherList = await send('GET', '/records?' + new URLSearchParams({ q: 'anello', expandTerms: '1', museum }), undefined, other);
+                    assert((await otherList.json()).items.some(row => row.id === privateId));
+                    assert.equal((await send('GET', '/records?q=ring&expandTerms=wrong')).status, 400);
+                    assert.equal((await send('GET', '/export?q=ring&expandTerms=1&expandTerms=0')).status, 400);
+                }, [owner, other]);
+            } finally {
+                await pool.query('DELETE FROM records WHERE id=ANY($1::uuid[])', [added]);
+                await pool.query('DELETE FROM users WHERE id=$1', [other]);
+            }
+        });
         await t.test('selective unified-vector search returns the right record and records the planner’s chosen path', async () => {
             await pool.query(`INSERT INTO records(user_id,item_name,museum_name)
                 SELECT $1,'Plan fixture '||g,CASE WHEN g=1500 THEN 'rarecatalogtoken' ELSE 'Common museum' END
