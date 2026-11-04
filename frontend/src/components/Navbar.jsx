@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { UserButton, useAuth } from "@clerk/react";
-import { DraftingCompassIcon, PlusIcon, UserIcon, Search, FolderIcon, UploadIcon, ClipboardCheckIcon } from "lucide-react";
+import { DraftingCompassIcon, PlusIcon, UserIcon, Search, FolderIcon, UploadIcon, ClipboardCheckIcon, ListFilterIcon } from "lucide-react";
 import { useResearchAccess } from '../../hooks/useResearchAccess';
 
 export default function Navbar() {
@@ -22,6 +22,7 @@ export default function Navbar() {
               </Link>
               <Link to="/collections" aria-label="Collections" className="btn btn-ghost btn-sm gap-1"><FolderIcon className="size-4" aria-hidden="true" /><span className="hidden sm:inline">Collections</span></Link>
               <Link to="/import" aria-label="Import records" className="btn btn-ghost btn-sm gap-1"><UploadIcon className="size-4" aria-hidden="true" /><span className="hidden sm:inline">Import</span></Link>
+              <Link to="/discoveries" aria-label="Museum discoveries" className="btn btn-ghost btn-sm gap-1"><ListFilterIcon className="size-4" aria-hidden="true" /><span className="hidden sm:inline">Discoveries</span></Link>
               {access.data?.canReview && <Link to="/review" aria-label="Review submissions" className="btn btn-ghost btn-sm gap-1"><ClipboardCheckIcon className="size-4" aria-hidden="true" /><span className="hidden sm:inline">Review</span></Link>}
               <Link to="/create" className="btn btn-primary btn-sm gap-1">
                 <PlusIcon className="size-4" aria-hidden="true" /> New Record
