@@ -149,11 +149,23 @@ async function preview(csv) {
     return r.json();
 }
 test('research API uses the existing approved-account gate for every route', async () => {
-    for (const route of ['/sources', '/collections', '/imports', '/records']) {
+    for (const route of ['/sources', '/terms', '/collections', '/imports', '/records']) {
         assert.equal((await request(route, {}, '')).status, 401);
         assert.equal((await request(route, {}, 'outsider')).status, 403);
     }
     assert.equal((await request('/sources', {}, 'reader')).status, 200);
+});
+
+test('museum terminology is a static read behind approved-account access', async () => {
+    const before = pool.state.writes;
+    const response = await request('/terms', {}, 'reader');
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('cache-control'), /private.*no-store/);
+    const glossary = await response.json();
+    assert.equal(glossary.version, '2026-11-04.1');
+    assert.equal(glossary.clientReviewStatus, 'Not yet reviewed by Holly');
+    assert.deepEqual(glossary.concepts.map(family => family.id), ['ring', 'pendant']);
+    assert.equal(pool.state.writes, before);
 });
 test('persisted preview writes no artifacts, flags repeated rows, and owner-only jobs reload', async () => {
     const p = await preview('Title,Museum,Accession Number,Materials\nCoin,Met,A1,\nSecond coin,Met,A1,\n');

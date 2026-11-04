@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import MuseumDiscovery from '../components/MuseumDiscovery';
 import { recordFields } from '../components/recordFields';
 import { commitImport, getImportJob, getImportJobs, getImportSources, importProgressIssue, ingestError, invalidateCatalog, parseObjectIds, previewImport, selectableRows, validateImportFile } from '../../lib/ingestApi';
 
@@ -144,6 +145,15 @@ export default function ImportPage() {
   const sources = useQuery({ queryKey: ['researchImportSources'], queryFn: ({ signal }) => getImportSources(signal), retry: false });
   const jobs = useQuery({ queryKey: ['researchImports'], queryFn: ({ signal }) => getImportJobs(signal), retry: false });
   const preview = useQuery({ queryKey: ['researchImport', jobId], queryFn: ({ signal }) => getImportJob(jobId, signal), enabled: !!jobId, retry: false });
+  async function previewDiscovered(sourceProvider, objectIds) {
+    setBusy(true);
+    try {
+      const next = await previewImport({ sourceProvider, objectIds });
+      client.setQueryData(['researchImport', String(next.id)], next);
+      setParams({ job: String(next.id) });
+      await client.invalidateQueries({ queryKey: ['researchImports'] });
+    } finally { setBusy(false); }
+  }
   async function makePreview(event) {
     event.preventDefault(); setError('');
     let objectIds;
@@ -163,6 +173,7 @@ export default function ImportPage() {
   }
   return <div className="max-w-5xl mx-auto space-y-6">
     <div><h1 className="text-3xl font-bold">Import artifacts</h1><p className="mt-2 text-base-content/70">Preview source facts, resolve errors, and choose records before importing.</p></div>
+    <MuseumDiscovery onPreview={previewDiscovered} previewBusy={busy} />
     <form className="card bg-base-300" onSubmit={makePreview}><div className="card-body space-y-4">
       <h2 className="card-title">Choose a source</h2>
       <label className="form-control space-y-1"><span>Source</span><select className="select select-bordered w-full" value={provider} disabled={busy} onChange={event => { setProvider(event.target.value); setMapping({}); setColumns([]); }}>
